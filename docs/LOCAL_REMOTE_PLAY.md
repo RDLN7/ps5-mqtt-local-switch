@@ -30,9 +30,7 @@ ActRemoteLink account ID + temporary pairing PIN
 Home Assistant sends a local UDP wake packet to the PS5
 ```
 
-The resulting Home Assistant entity wakes a PS5 in Rest Mode. When the PS5 MQTT
-add-on is installed and manages the same PS5, the entity also uses its
-authenticated controller to place the console in Rest Mode. This is not a
+The resulting Home Assistant entity wakes a PS5 in Rest Mode. This is not a
 Remote Play or game-streaming project; the Remote Play protocol is used only
 for the local registration mechanism.
 
@@ -171,9 +169,8 @@ wake request rather than proving the console completed startup.
 ### I need remote power-off
 
 The local registration key can wake a PS5 but cannot put it into Rest Mode.
-Install and configure the PS5 MQTT add-on for the same PS5; the integration
-detects its matching power entity by IP address and delegates the off action to
-that authenticated controller.
+Use a Remote Play controller with a valid, separately registered client
+credential for standby control.
 
 ## Security and licensing
 
