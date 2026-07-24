@@ -1,36 +1,97 @@
 # PS5 Local Remote Play for Home Assistant
 
-This fork adds a HACS integration that wakes a PS5 locally from Rest Mode. It
-does not use Sony OAuth, an NPSSO token, or a PSN sign-in in Home Assistant.
+This guide explains the **PS5 Local Remote Play** HACS integration included in
+the `fishredleung/ps5-mqtt` fork. It adds a local-network wake switch for a
+PS5 in Rest Mode without using Sony OAuth, an NPSSO token, or a PSN sign-in in
+Home Assistant.
 
-## What it uses
+The original PS5 MQTT project was created by **Florentijn Cornet (FunkeyFlo)**
+and **Andrew Smith (andrew-codes)**. This fork preserves the original project
+and adds the local Remote Play path described here.
 
-The setup is based on the same local Remote Play protocol used by
-ActRemoteLink and Chiaki/CloudPad:
+> [!WARNING]
+> This is an advanced, local-network setup for hardware you own. It does not
+> bypass the PS5's Remote Play pairing requirement. Keep your registration key
+> private: anyone on your network who has it can send a wake request to the
+> console.
+
+## What this integration does
 
 ```text
-Base64 account ID + temporary PS5 pairing PIN
-  -> local Remote Play registration
-  -> persistent registration key
-  -> local UDP wake packet to the PS5
+ActRemoteLink account ID + temporary pairing PIN
+              │
+              ▼
+      Local Remote Play registration
+              │
+              ▼
+   Persistent registration key (regist_key)
+              │
+              ▼
+Home Assistant sends a local UDP wake packet to the PS5
 ```
 
-The generated registration key is sensitive. Treat it like a device password;
-do not post it in logs, issues, or screenshots.
+The resulting Home Assistant entity is a **wake switch**. Turning it on asks a
+PS5 in Rest Mode to wake. It is not a streaming client and it does not show
+the game currently being played.
 
-## Prerequisites
+## Requirements
 
-- PS5 on the same network as Home Assistant.
-- PS5 in Rest Mode, with network wake and Remote Play enabled.
-- A local account prepared with ActRemoteLink. Keep that user active while
+Before starting, make sure you have all of the following:
+
+- A PS5 and Home Assistant on the same LAN or VLAN with UDP traffic permitted.
+- A stable PS5 IP address; a DHCP reservation is strongly recommended.
+- PS5 Remote Play enabled, and Rest Mode configured to remain connected to the
+  network.
+- A jailbroken PS5 with a payload loader only if you use ActRemoteLink to
+  create the offline pairing PIN.
+- The intended local PS5 user signed in and active in the foreground during
   pairing.
-- The Base64 Account ID and fresh eight-digit PIN produced by ActRemoteLink.
 - HACS installed in Home Assistant.
+- A computer with CMake, a C compiler, Git, and development libraries to build
+  the local registration helper.
 
-## Create the local registration key
+## 1. Prepare the PS5
 
-The source helper is in `native/local-remote-play`. It uses the CloudPad/Chiaki
-local registration code and performs no PSN OAuth login.
+1. Sign in to the local PS5 account that you want to associate with Remote
+   Play.
+2. In **Settings → System → Remote Play**, enable Remote Play if the option is
+   available.
+3. In **Settings → System → Power Saving → Features Available in Rest Mode**,
+   enable the network option that allows the PS5 to remain reachable in Rest
+   Mode.
+4. Leave this user active on screen while generating and using the pairing
+   PIN.
+
+Do not change the account ID of an existing primary user with saves unless you
+have a backup and understand the consequences. A separate local user is the
+safer choice for offline activation.
+
+## 2. Generate a pairing PIN with ActRemoteLink
+
+Start the ActRemoteLink agent and generate a PIN for the currently active user:
+
+```bash
+python3 actremotelink_sender.py --host PS5_IP start
+python3 actremotelink_sender.py --host PS5_IP pin
+```
+
+Record both values shown in the output:
+
+```text
+pin=1234 5678
+account_id_base64=EXAMPLE_BASE64_ACCOUNT_ID
+```
+
+The PIN expires quickly (normally five minutes). Generate it immediately
+before the registration step below.
+
+## 3. Create a local registration key
+
+The source helper is in `native/local-remote-play`. It uses the local
+Chiaki/CloudPad registration flow: the Base64 account ID and eight-digit PIN
+are exchanged directly with the PS5 to create a `regist_key`.
+
+From the repository root:
 
 ```bash
 cmake -S native/local-remote-play -B build/local-remote-play
@@ -39,28 +100,78 @@ cmake --build build/local-remote-play
   PS5_IP BASE64_ACCOUNT_ID EIGHT_DIGIT_PIN
 ```
 
-The command prints a JSON object containing `regist_key`. Generate a fresh PIN
-immediately before running it; PINs expire quickly.
+Expected output:
 
-## Install with HACS
+```json
+{"regist_key":"0123abcd"}
+```
 
-1. In HACS, open **Integrations** and choose the custom repository option.
-2. Add `https://github.com/fishredleung/ps5-mqtt` with category
-   **Integration**.
-3. Install **PS5 MQTT Local Remote Play** and restart Home Assistant.
-4. Go to **Settings → Devices & services → Add integration**.
-5. Select **PS5 Local Remote Play** and enter the PS5 IP address plus the
-   generated registration key.
+Save this value in a password manager. Do not share it in GitHub issues, Home
+Assistant logs, screenshots, or chat messages.
 
-Home Assistant creates a `Power` switch. Turning it on sends the local
-Chiaki-compatible wake packet to UDP port `9302`.
+If registration fails, generate a new ActRemoteLink PIN, confirm the intended
+PS5 user is foreground, and retry while the console is awake and reachable.
 
-## Limits
+## 4. Install the integration with HACS
 
-- The switch wakes a PS5 from Rest Mode; it cannot power on a fully shut-down
-  console.
-- It is intentionally optimistic: the Remote Play discovery protocol does not
-  provide a reliable acknowledgement or remote power-off command.
-- Registration needs a PS5 pairing PIN, but it does not need Sony OAuth.
-- The native helper includes CloudPad/Chiaki-derived code under AGPL-3.0-only;
-  any distributed binary containing that helper must comply with that licence.
+1. In Home Assistant, open **HACS → Integrations**.
+2. Open the menu and choose **Custom repositories**.
+3. Add `https://github.com/fishredleung/ps5-mqtt`.
+4. Set the category to **Integration** and save.
+5. Find **PS5 MQTT Local Remote Play**, install it, and restart Home Assistant.
+
+## 5. Configure the PS5 wake switch
+
+1. Open **Settings → Devices & services**.
+2. Select **Add integration**.
+3. Search for **PS5 Local Remote Play**.
+4. Enter the PS5 IP address and the `regist_key` created in step 3.
+5. Finish setup.
+
+Home Assistant creates a `Power` switch. Turn it on to send a local,
+Chiaki-compatible UDP wake packet to port `9302` on the PS5.
+
+## Normal use
+
+- Put the PS5 into **Rest Mode**, not a full shutdown.
+- Turn on the Home Assistant `Power` switch when you want to wake it.
+- After the console wakes, use your registered Remote Play client normally.
+
+The switch is intentionally optimistic: the PS5 discovery protocol does not
+return a dependable acknowledgement, so Home Assistant records that it sent a
+wake request rather than proving the console completed startup.
+
+## Troubleshooting
+
+### The switch turns on, but the PS5 stays asleep
+
+- Confirm the console is in Rest Mode, not fully powered down.
+- Confirm the PS5 IP address has not changed.
+- Confirm Home Assistant can route to the PS5 VLAN and UDP port `9302` is not
+  blocked.
+- Re-check the Rest Mode network settings and Remote Play setting.
+- Generate a new `regist_key` if the saved key is wrong or was created for a
+  different PS5/user pairing.
+
+### Registration rejects the PIN
+
+- The PIN has probably expired; generate a fresh one.
+- Make sure the intended account is the active foreground user on the PS5.
+- Use the Base64 account ID exactly as ActRemoteLink prints it.
+- Ensure the PS5 is awake and reachable from the machine running the helper.
+
+### I need remote power-off or a real state sensor
+
+This integration only implements the local wake request. The Remote Play
+discovery protocol does not provide reliable remote shutdown or authoritative
+power state. Keep the original PS5 MQTT add-on if you need its existing MQTT
+entities and behaviour.
+
+## Security and licensing
+
+- The registration key is a credential. Keep it out of source control and
+  public configuration exports.
+- The helper imports CloudPad/Chiaki-derived code under **AGPL-3.0-only**. Any
+  distributed binary containing that helper must comply with that licence.
+- The original PS5 MQTT source remains MIT-licensed; see `LICENSE.md` and the
+  relevant third-party notices for attribution.
