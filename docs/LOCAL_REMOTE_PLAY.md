@@ -1,7 +1,7 @@
 # PS5 MQTT Local Switch for Home Assistant
 
 This guide explains the **PS5 MQTT Local Switch** HACS integration included in
-the `fishredleung/ps5-mqtt` fork. It modifies the original PS5 MQTT project to
+the `RDLN7/ps5-mqtt-local-switch` fork. It modifies the original PS5 MQTT project to
 add a local-network wake switch for a PS5 in Rest Mode without using Sony
 OAuth, an NPSSO token, or a PSN account/device in Home Assistant.
 
@@ -116,7 +116,7 @@ PS5 user is foreground, and retry while the console is awake and reachable.
 
 1. In Home Assistant, open **HACS → Integrations**.
 2. Open the menu and choose **Custom repositories**.
-3. Add `https://github.com/fishredleung/ps5-mqtt`.
+3. Add `https://github.com/RDLN7/ps5-mqtt-local-switch`.
 4. Set the category to **Integration** and save.
 5. Find **PS5 MQTT Local Switch**, install it, and restart Home Assistant.
 

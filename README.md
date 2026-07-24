@@ -22,7 +22,7 @@
     <h1>PS5 MQTT Local Switch</h1>
 </div>
 
-> This is the **fishredleung fork** of PS5 MQTT. It adds a HACS integration
+> This is the **RDLN7 fork** of PS5 MQTT. It adds a HACS integration
 > for a PSN-free local PS5 wake switch. The switch does not need a PSN account
 > or PSN device configured in Home Assistant.
 
