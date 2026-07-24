@@ -1,9 +1,9 @@
 {
   "domain": "ps5_local_remote_play",
   "name": "PS5 MQTT Local Switch",
-  "codeowners": ["@FunkeyFlo"],
+  "codeowners": ["@RDLN7"],
   "config_flow": true,
-  "documentation": "https://github.com/FunkeyFlo/ps5-mqtt",
+  "documentation": "https://github.com/RDLN7/ps5-mqtt-local-switch/blob/main/docs/LOCAL_REMOTE_PLAY.md",
   "iot_class": "local_push",
   "version": "0.1.0"
 }

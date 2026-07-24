@@ -3,8 +3,8 @@
     <br>
     <br>
     <div style="display: flex;">
-        <a href="https://github.com/FunkeyFlo/ps5-mqtt/releases">
-            <img src="https://img.shields.io/github/release/FunkeyFlo/ps5-mqtt.svg">
+        <a href="https://github.com/RDLN7/ps5-mqtt-local-switch/releases">
+            <img src="https://img.shields.io/github/release/RDLN7/ps5-mqtt-local-switch.svg">
         </a>
         <a href="https://github.com/sponsors/FunkeyFlo">
             <img src="https://img.shields.io/github/sponsors/FunkeyFlo?logo=githubsponsors&label=FunkeyFlo">
@@ -15,7 +15,7 @@
         <a href="#">
             <img src="https://img.shields.io/maintenance/yes/2026.svg">
         </a>
-        <a href="https://github.com/FunkeyFlo/ps5-mqtt/LICENSE.md">
+        <a href="https://github.com/RDLN7/ps5-mqtt-local-switch/LICENSE.md">
             <img src="https://img.shields.io/github/license/hassio-addons/addon-ssh.svg">
         </a>
     </div>

@@ -1,4 +1,4 @@
 # https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
-name: PS5 MQTT Local Remote Play
+name: PS5 MQTT Local Switch
 url: "https://github.com/RDLN7/ps5-mqtt-local-switch"
 maintainer: "RDLN7 <https://github.com/RDLN7>"

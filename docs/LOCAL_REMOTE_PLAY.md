@@ -47,8 +47,11 @@ Before starting, make sure you have all of the following:
 - The intended local PS5 user signed in and active in the foreground during
   pairing.
 - HACS installed in Home Assistant.
-- A computer with CMake, a C compiler, Git, and development libraries to build
-  the local registration helper.
+- A computer with CMake, a C compiler, Git, `pkg-config`, OpenSSL, `json-c`,
+  and `miniupnpc` development libraries to build the local registration helper.
+  On Debian/Ubuntu, install `build-essential cmake pkg-config libssl-dev
+  libjson-c-dev libminiupnpc-dev`; on macOS, use Homebrew's `json-c` and
+  `miniupnpc` packages.
 
 ## 1. Prepare the PS5
 
@@ -105,6 +108,9 @@ Expected output:
 ```json
 {"regist_key":"0123abcd"}
 ```
+
+The `regist_key` is a one-to-sixteen-character hexadecimal wake credential.
+Copy it exactly as printed; do not convert it to Base64 or pad it with zeroes.
 
 Save this value in a password manager. Do not share it in GitHub issues, Home
 Assistant logs, screenshots, or chat messages.

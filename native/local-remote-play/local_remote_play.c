@@ -6,6 +6,7 @@
 #include <chiaki/common.h>
 #include <chiaki/log.h>
 #include <chiaki/regist.h>
+#include <ctype.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,16 @@ typedef struct {
   int success;
   char regist_key[CHIAKI_SESSION_AUTH_SIZE + 1];
 } RegisterResult;
+
+static int valid_wakeup_key(const char *key) {
+  size_t key_length = 0;
+  while (key_length < CHIAKI_SESSION_AUTH_SIZE && key[key_length] != '\0') {
+    if (!isxdigit((unsigned char)key[key_length]))
+      return 0;
+    key_length++;
+  }
+  return key_length > 0;
+}
 
 static void registration_callback(ChiakiRegistEvent *event, void *user) {
   RegisterResult *result = user;
@@ -70,6 +81,10 @@ static int register_console(const char *host, const char *account_id, const char
 
   if (!result.success) {
     fprintf(stderr, "PS5 rejected local registration. Generate a fresh PIN and retry.\n");
+    return 1;
+  }
+  if (!valid_wakeup_key(result.regist_key)) {
+    fprintf(stderr, "PS5 returned a registration key that cannot be used as a wake credential.\n");
     return 1;
   }
   printf("{\"regist_key\":\"%s\"}\n", result.regist_key);

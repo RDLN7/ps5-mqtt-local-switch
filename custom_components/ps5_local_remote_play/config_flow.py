@@ -22,9 +22,7 @@ class Ps5LocalRemotePlayConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST].strip()
             key = user_input[CONF_REGIST_KEY].strip().lower()
-            try:
-                int(key, 16)
-            except ValueError:
+            if not 1 <= len(key) <= 16 or any(char not in "0123456789abcdef" for char in key):
                 errors[CONF_REGIST_KEY] = "invalid_registration_key"
             else:
                 await self.async_set_unique_id(host)
