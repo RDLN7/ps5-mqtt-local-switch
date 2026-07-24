@@ -1,99 +1,66 @@
-<div align="center">
-    <img src="./add-ons/ps5-mqtt-edge/logo.png" />
-    <br>
-    <br>
-    <div style="display: flex;">
-        <a href="https://github.com/FunkeyFlo/ps5-mqtt/releases">
-            <img src="https://img.shields.io/github/release/FunkeyFlo/ps5-mqtt.svg">
-        </a>
-        <a href="https://github.com/sponsors/FunkeyFlo">
-            <img src="https://img.shields.io/github/sponsors/FunkeyFlo?logo=githubsponsors&label=FunkeyFlo">
-        </a>
-        <a href="https://github.com/sponsors/andrew-codes">
-            <img src="https://img.shields.io/github/sponsors/andrew-codes?logo=githubsponsors&label=andrew-codes">
-        </a>
-        <a href="#">
-            <img src="https://img.shields.io/maintenance/yes/2026.svg">
-        </a>
-        <a href="https://github.com/FunkeyFlo/ps5-mqtt/LICENSE.md">
-            <img src="https://img.shields.io/github/license/hassio-addons/addon-ssh.svg">
-        </a>
-    </div>
-    <h1>PS5 MQTT</h1>
-</div>
+# PS5 MQTT Local Control
 
-Integrate your Sony Playstation 5 devices with Home Assistant using MQTT.
+Home Assistant add-on for discovering and controlling PlayStation 5 consoles
+through MQTT. This fork adds local Remote Play pairing for wake and Rest Mode,
+so the power switch does not require Sony OAuth, an NPSSO token, or a PSN login
+inside Home Assistant.
 
-![Supports aarch64 Architecture][aarch64-shield]
-![Supports amd64 Architecture][amd64-shield]
-
-[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FFunkeyFlo%2Fps5-mqtt-edge)
+The original **PS5 MQTT** project was created by
+[Florentijn Cornet (FunkeyFlo)](https://github.com/FunkeyFlo) and
+[Andrew Smith (andrew-codes)](https://github.com/andrew-codes). This fork keeps
+the original MQTT discovery, state reporting, and optional PSN activity
+features while adding the local control backend.
 
 ## Features
 
-The following features have been implemented or are planned for future implementation.
+- MQTT discovery for Home Assistant
+- Actual PS5 awake/standby state tracking
+- Wake from Rest Mode over the local network
+- Put an awake PS5 into Rest Mode through a local Chiaki session
+- Pair from the add-on Web UI using Account ID + PS5 Link Device PIN
+- Persistent local credentials stored under `/config/ps5-mqtt`
+- Optional NPSSO accounts for game/activity metadata only
+- `amd64` and `aarch64` add-on images
 
-| Feature                                            | Implemented |
-| -------------------------------------------------- | ----------- |
-| Power; Wake/Standby (rest mode)                    | ✔           |
-| Discover Playstation 5 devices on local network    | ✔           |
-| [Web UI for acquiring credentials][credentials-ui] | ✔           |
-| Match [PSN account activity][1.0.0] to device      | ✔           |
+## Install
 
-## Installation
+[![Open your Home Assistant instance and add this add-on repository.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FRDLN7%2Fps5-mqtt-local-switch)
 
-1. Install an [MQTT broker][mqtt-broker], if you haven't already.
-2. Add the repository to Home Assistant using the repository's url or by pressing the _add-repostory_ button above.
-3. Install the PS5 MQTT add-on. **Not the edge version!**.
-4. Configure the add-on as described in the [documentation][ha-docs].
-5. Start the add-on.
-6. Use the web-ui to authenticate with each PlayStation device.
+1. Install and start the Home Assistant Mosquitto broker (or configure another
+   MQTT broker).
+2. Add this repository to **Settings → Apps → App store → Repositories**:
+   `https://github.com/RDLN7/ps5-mqtt-local-switch`
+3. Install **PS5 MQTT Local Control**.
+4. Start the add-on and open its Web UI.
+5. Select your PS5 and choose **Pair local control**.
+6. On the PS5, open **Settings → System → Remote Play → Link Device**.
+7. Enter that user's Base64 Account ID and the new 8-digit PIN in the Web UI.
 
-The MQTT entities will be created automatically when a new device is discovered on your network.
+The PIN is temporary. The add-on saves the resulting local registration key
+and Remote Play key; it does not save the PIN.
 
-_Note: this does require MQTT auto-discovery to be enabled._
+## What does and does not need PSN
 
-## Using the add-on with Home Assistant Core (`Docker`)
+Wake, Rest Mode, discovery, and state reporting use only the local network
+after pairing. `psn_accounts` is optional and is used only when you want PSN
+presence/game activity metadata.
 
-This bit of [documentation][docker-docs] should get you on your way! 😻
+The PS5 pairing protocol still requires the Account ID belonging to the
+console user being paired. This is not a Sony password, OAuth token, or NPSSO
+token. Keep the generated registration credentials private.
 
-## Support the project!
+See [the add-on manual](docs/DOCS.md) for configuration, troubleshooting, and
+security details.
 
-If you enjoy the project, please consider sponsoring further development! 💕
+## Local-control implementation
 
-## FAQ
+The bundled `ps5-mqtt-local-rp` helper is built from the pinned
+[CloudPad](https://github.com/Chazq2023/CloudPad-Android) Chiaki fork. It:
 
-### The log is showing 403 errors when I try to turn my ps5 on or off!
+1. registers locally using Account ID + Link Device PIN;
+2. sends Chiaki's local wake packet;
+3. opens a minimal audio/video-disabled local session and calls
+   `chiaki_session_goto_bed()` for Rest Mode.
 
-Double check that you've enabled all required remote play features [as described in the remote play documentation][ps5-rp].
-
-### Can devices be powered on/off from/to other modes than rest mode?
-
-**No.** The underlying remote play protocol from sony does not support this.
-
-### Why does this add-on only support Awake/Standby on Playstation 4?
-
-There already is a great [Home Assistant integration][ha-ps4] that supports more functionality for PS4 devices like starting games. However, users have reported that this add-on detects Awake/Standby changes faster than the existing integration. So if you want you can use this add-on next to the existing integration or instead of it, if you are only interested in Standby/Awake.
-
-## Thanks & Credits
-
-This project was created and is maintained by [FunkeyFlo][ff-user], with ongoing development contributions from [andrew-codes][ac-user]. 🙏
-
-The initial MQTT implementation for tracking device power was based on the work done by [andrew-codes][ac-user] and can be found in [this repository][ac-repo].
-
-<!-- links -->
-
-[aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
-[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
-[credentials-ui]: https://community.home-assistant.io/t/ps5-mqtt-control-playstation-5-devices-using-mqtt/441141#impressions-1
-[discord]: https://discord.gg/BnmvYHvz5N
-[docker-docs]: ./docs/DOCKER.md
-[ha-docs]: ./add-ons/ps5-mqtt-edge/DOCS.md
-[ff-user]: https://github.com/FunkeyFlo
-[ac-repo]: https://github.com/andrew-codes/home-automation
-[ac-user]: https://github.com/andrew-codes
-[matt8707-dash]: https://community.home-assistant.io/t/a-different-take-on-designing-a-lovelace-ui/162594
-[mqtt-broker]: https://www.home-assistant.io/docs/mqtt/broker/
-[ha-ps4]: https://www.home-assistant.io/integrations/ps4/
-[ps5-rp]: https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_mobile.html#section3
-[1.0.0]: https://github.com/FunkeyFlo/ps5-mqtt/releases/tag/v1.0.0
+The native helper and its Chiaki-derived code are distributed under
+AGPL-3.0-only. See the source and repository licenses for details.

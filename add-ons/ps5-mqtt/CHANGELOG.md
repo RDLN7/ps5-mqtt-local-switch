@@ -1,6 +1,30 @@
+## 1.7.1 - 2026-07-24
+
+### Added
+
+- Bundled Chiaki/CloudPad local pairing helper for PS5.
+- PSN-free local wake and connected-session Rest Mode commands.
+- Local Account ID + Link Device PIN pairing in the add-on Web UI.
+- Persistent local credentials under `/config/ps5-mqtt`.
+
+### Changed
+
+- Renamed the fork to **PS5 MQTT Local Control**.
+- Kept PSN/NPSSO configuration optional for activity metadata only.
+- Removed the incomplete wake-only HACS component; this project installs as a
+  Home Assistant add-on.
+- Updated add-on images, repository links, documentation, and original-author
+  credits for this fork.
+
+### Fixed
+
+- Added the full Remote Play key required by Rest Mode.
+- Added Alpine/musl compatibility and native runtime dependencies.
+
 ## 1.6.0 - 2026-07-23
 
 ## What’s changed
+
 - improved e2e release confidence @andrew-codes (#667)
 - feat(server): persist PSN OAuth tokens to disk so NPSSO only needs renewing after long downtime @wizardmelon (#665)
 
@@ -12,6 +36,7 @@
 ## 1.5.0 - 2026-07-20
 
 ## What’s changed
+
 - chore: better logging around missing configuration @andrew-codes (#653)
 - chore(ci): unify HA add-on image name, drop PR tags for it @andrew-codes (#654)
 - feat: add optional login_passcode for passcode-protected profiles @bayan9 (#663)
@@ -23,6 +48,7 @@
 ## 1.4.1 - 2026-07-14
 
 ## What’s changed
+
 - fix: removal of intermediate packages @andrew-codes (#650)
 - chore(ci): GH release is the trigger for a release @andrew-codes (#651)
 
@@ -175,13 +201,14 @@ You can find the ID of your PlayStation device by:
 Matching PSN account activity to consoles is now supported.
 
 The add-on will create a new `sensor.my_playstation_activity` sensor that tells you which app/game is being used on the console! Both entities, `activity` and `power`, will now include the following attributes:
-| Attribute | Description |
-| -- | -- |
-| `Players` | A list of players active on the device |
+
+| Attribute                 | Description                                                                |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `Players`                 | A list of players active on the device                                     |
 | `Activity` / sensor.state | `idle`, `playing` or `none`; indicating the kind of activity on the device |
-| `Title Name` | A user-friendly name of the Playstation App / Game currently in use. |
-| `Title Image` | A `url` referring to the official box-art. |
-| `Title ID` | unique code for the Playstation App / Game currently in use. |
+| `Title Name`              | A user-friendly name of the Playstation App / Game currently in use.       |
+| `Title Image`             | A `url` referring to the official box-art.                                 |
+| `Title ID`                | unique code for the Playstation App / Game currently in use.               |
 
 Take a look at the [documentation](https://github.com/FunkeyFlo/ps5-mqtt/blob/main/add-ons/ps5-mqtt-edge/DOCS.md#psn_accounts-optional-multiple) to see how to configure the add on for tracking PSN accounts and how to acquire the required information.
 

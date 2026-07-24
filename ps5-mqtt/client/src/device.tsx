@@ -2,15 +2,13 @@ import * as Grommet from "grommet"
 import * as GrommetIcons from "grommet-icons"
 import React from "react"
 import { Authenticate } from "./authenticate"
-import { AppContext } from "./context"
 import type { IDevice } from "./types"
 
 export const Device: React.FC<{ device: IDevice }> = ({ device }) => {
-  const { api } = React.useContext(AppContext)
-  const [authUrl, setAuthUrl] = React.useState<string>("")
+  const [showPairing, setShowPairing] = React.useState(false)
 
   const onAuthExit = async () => {
-    setAuthUrl(undefined)
+    setShowPairing(false)
   }
 
   return (
@@ -48,21 +46,16 @@ export const Device: React.FC<{ device: IDevice }> = ({ device }) => {
         <Grommet.CardFooter pad={{ horizontal: "small" }}>
           <Grommet.Button
             icon={<GrommetIcons.Connect size="medium" />}
-            onClick={async () => {
-              const url = await api.acquireAuthenticationLink(device)
-              if (url !== undefined) {
-                setAuthUrl(url)
-              }
-            }}
+            onClick={() => setShowPairing(true)}
             hoverIndicator
-            tip={"Authenticate"}
+            tip={"Pair local control"}
           />
         </Grommet.CardFooter>
       </Grommet.Card>
 
-      {!!authUrl && (
+      {showPairing && (
         <Grommet.Layer onEsc={onAuthExit} onClickOutside={onAuthExit}>
-          <Authenticate url={authUrl} onDone={onAuthExit} device={device} />
+          <Authenticate onDone={onAuthExit} device={device} />
         </Grommet.Layer>
       )}
     </>

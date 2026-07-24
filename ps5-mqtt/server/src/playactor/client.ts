@@ -1,6 +1,7 @@
 import createDebugger from "debug"
 import sh from "shelljs"
 
+import type { LocalRemotePlayClient } from "../local-remote-play/client"
 import type { Device } from "../redux/types"
 import { buildPassCodeArg } from "../util/pass-code"
 
@@ -9,6 +10,7 @@ const debug = createDebugger("@ha:ps5:playactor")
 export interface PlayactorClientSettings {
   credentialStoragePath: string
   loginPasscode?: string
+  localRemotePlayClient?: LocalRemotePlayClient
 }
 
 /**
@@ -27,6 +29,7 @@ export interface PlayactorClient {
 export function createPlayactorClient({
   credentialStoragePath,
   loginPasscode,
+  localRemotePlayClient,
 }: PlayactorClientSettings): PlayactorClient {
   const buildWakeCommand = (ip: string): string =>
     `playactor wake --ip ${ip}` +
@@ -57,10 +60,18 @@ export function createPlayactorClient({
 
   return {
     async wake(ip: string): Promise<void> {
+      if (localRemotePlayClient?.hasCredential(ip)) {
+        await localRemotePlayClient.wake(ip)
+        return
+      }
       await runPowerCommand(buildWakeCommand(ip))
     },
 
     async standby(ip: string): Promise<void> {
+      if (localRemotePlayClient?.hasCredential(ip)) {
+        await localRemotePlayClient.standby(ip, loginPasscode)
+        return
+      }
       await runPowerCommand(buildStandbyCommand(ip))
     },
 

@@ -6,73 +6,42 @@ export default class Api {
   async connectToDevice(
     device: IDevice,
     pin: string,
-    url: string,
-  ): Promise<string> {
+    accountId: string,
+  ): Promise<boolean> {
     try {
-      const res = await fetch("api/connect", {
+      const response = await fetch("api/connect", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          device,
-          pin,
-          url,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ device, pin, accountId }),
       })
-      if (res.status >= 400 && res.status < 600) {
-        this.logger.error(await res.text())
-      } else {
-        return await res.text()
+      if (!response.ok) {
+        this.logger.error(await response.text())
+        return false
       }
-    } catch (e) {
-      this.logger.error(e)
-    }
-  }
-
-  async acquireAuthenticationLink(
-    device: IDevice,
-  ): Promise<string | undefined> {
-    try {
-      const res = await fetch("api/acquire-authentication-link", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          device,
-        }),
-      })
-      if (res.status >= 400 && res.status < 600) {
-        this.logger.error(await res.text())
-      } else {
-        return await res.text()
-      }
-    } catch (e) {
-      this.logger.error(e)
+      this.logger.log(`Local control paired with ${device.name}`)
+      return true
+    } catch (error) {
+      this.logger.error(error)
+      return false
     }
   }
 
   async getStats(): Promise<Stats | undefined> {
     try {
-      const res = await fetch("api/stats", {
-        method: "GET",
-      })
-      return await res.json()
-    } catch (e) {
-      this.logger.error(e)
+      const response = await fetch("api/stats", { method: "GET" })
+      return await response.json()
+    } catch (error) {
+      this.logger.error(error)
       return undefined
     }
   }
 
   async getDevices(): Promise<IDevice[] | undefined> {
     try {
-      const res = await fetch("api/discover", {
-        method: "GET",
-      })
-      return ((await res.json()) as DiscoveryResponse)?.devices
-    } catch (e) {
-      this.logger.error(e)
+      const response = await fetch("api/discover", { method: "GET" })
+      return ((await response.json()) as DiscoveryResponse)?.devices
+    } catch (error) {
+      this.logger.error(error)
       return undefined
     }
   }

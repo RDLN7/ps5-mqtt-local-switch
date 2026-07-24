@@ -1,117 +1,81 @@
 import React from "react"
 import * as Grommet from "grommet"
 import * as GrommetIcons from "grommet-icons"
-import type { IDevice } from "./types"
+
 import { AppContext } from "./context"
+import type { IDevice } from "./types"
 
 export const Authenticate: React.FC<{
   device: IDevice
-  url: string
   onDone: (success?: boolean) => Promise<void>
-}> = ({ device, onDone, url }) => {
+}> = ({ device, onDone }) => {
   const { api } = React.useContext(AppContext)
-  const [authenticating, setAuthenticating] = React.useState<boolean>(false)
+  const [authenticating, setAuthenticating] = React.useState(false)
   const [valid, setValid] = React.useState(false)
 
   return (
     <Grommet.Box pad="small" gap="medium" width="medium">
       <Grommet.Heading level="3" margin="none">
-        Authenticate with {device.name}
+        Pair local control with {device.name}
       </Grommet.Heading>
-
       <Grommet.Form
         validate="change"
         onSubmit={async (event) => {
-          const { pin, url } = event.value as { pin: string; url: string }
+          const { accountId, pin } = event.value as {
+            accountId: string
+            pin: string
+          }
           setAuthenticating(true)
-          await api.connectToDevice(device, pin, url)
-          onDone()
+          const success = await api.connectToDevice(device, pin, accountId)
+          setAuthenticating(false)
+          if (success) await onDone(true)
         }}
-        onValidate={(validationResults) => {
-          setValid(validationResults.valid)
-        }}
+        onValidate={(result) => setValid(result.valid)}
       >
-        <ol style={{ margin: 0, paddingLeft: 17 + "px" }}>
-          <li>
-            Authenticate with PSN by following the steps in{" "}
-            <Grommet.Anchor target="_blank" href={url} label="this page" />.
-          </li>
-          <li>
-            Once successfull authentication the page will read <i>redirect</i>,{" "}
-            <b>this is OK!</b>
-          </li>
-          <li>
-            Copy the URL of the <b>redirect</b> page from your browser and paste
-            in the field below.
-          </li>
-        </ol>
-
-        <Grommet.Paragraph>
-          Having trouble?{" "}
-          <Grommet.Anchor
-            target="_blank"
-            href="https://community.home-assistant.io/t/ps5-mqtt-control-playstation-5-devices-using-mqtt/441141#authentication-ui-v060-3"
-            label="Watch this video"
-          />
-          .
+        <Grommet.Paragraph margin={{ top: "none" }}>
+          Enter the Base64 Account ID for the PS5 user you will pair. It is used
+          only for local Remote Play registration; no Sony sign-in or OAuth
+          token is required.
         </Grommet.Paragraph>
-
         <Grommet.FormField
-          label="URL"
-          name="url"
-          htmlFor="url"
+          label="Base64 Account ID"
+          name="accountId"
           required
           disabled={authenticating}
           validate={[
-            (value) => {
-              try {
-                const parsedUrl = new URL(value)
-                if (parsedUrl.protocol !== "https:")
-                  return "must be a valid url"
-                return undefined
-              } catch (e) {
-                console.error(e)
-                return "must be a valid url"
-              }
-            },
+            (value) =>
+              /^[A-Za-z0-9+/]{11}=$/.test(value ?? "")
+                ? undefined
+                : "must be a Base64-encoded 8-byte Account ID",
           ]}
         >
           <Grommet.TextInput
-            type="url"
-            id="url"
-            name="url"
-            placeholder="Paste browser URL acquired through link"
-            icon={<GrommetIcons.Link />}
+            name="accountId"
+            placeholder="Base64 Account ID"
+            icon={<GrommetIcons.User />}
           />
         </Grommet.FormField>
-
         <Grommet.Paragraph margin="none">
-          On your PlayStation 5, go to Settings &gt; System &gt; Remote Play
-          &gt; Link Device. Enter the PIN Code below.
+          On the PS5, open Settings &gt; System &gt; Remote Play &gt; Link
+          Device, then enter the newly generated PIN below.
         </Grommet.Paragraph>
-
         <Grommet.FormField
-          label="PIN Code"
+          label="Link Device PIN"
           name="pin"
           required
-          htmlFor="pin"
           disabled={authenticating}
           validate={[
-            { regexp: /^[0-9]/i },
-            (value) => {
-              if (value?.length !== 8) return "must be exactly 8 digits"
-              return undefined
-            },
+            { regexp: /^[0-9]{8}$/ },
+            (value) =>
+              value?.length === 8 ? undefined : "must be exactly 8 digits",
           ]}
         >
           <Grommet.TextInput
             name="pin"
-            id="pin"
-            placeholder="Remote Play PIN Code"
+            placeholder="8-digit PIN"
             icon={<GrommetIcons.Key />}
           />
         </Grommet.FormField>
-
         <Grommet.Box
           direction="row"
           justify="between"
@@ -120,10 +84,10 @@ export const Authenticate: React.FC<{
           <Grommet.Button label="Cancel" onClick={() => onDone()} />
           <Grommet.Button
             type="submit"
-            label={"Authenticate"}
+            label="Pair local control"
             primary
             disabled={!valid || authenticating}
-            icon={authenticating ? <Grommet.Spinner /> : null}
+            icon={authenticating ? <Grommet.Spinner /> : undefined}
           />
         </Grommet.Box>
       </Grommet.Form>

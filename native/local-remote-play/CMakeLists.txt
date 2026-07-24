@@ -10,6 +10,10 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/Chazq2023/CloudPad-Android.git
   GIT_TAG 3f68cb19c4c1e06c8aa584d860421864ff506c4c
   GIT_SUBMODULES_RECURSE TRUE
+  PATCH_COMMAND
+    ${CMAKE_COMMAND}
+    -DSOURCE_DIR=<SOURCE_DIR>
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/patch_cloudpad.cmake
 )
 
 set(CHIAKI_ENABLE_TESTS OFF CACHE BOOL "" FORCE)

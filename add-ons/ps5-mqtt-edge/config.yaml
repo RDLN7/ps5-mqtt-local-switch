@@ -1,8 +1,8 @@
 version: "edge"
 slug: ps5_mqtt_dev
-name: PS5 MQTT - Development Version
-description: Development build of the PS5 MQTT add-on
-url: https://github.com/FunkeyFlo/ps5-mqtt/tree/main/add-ons/ps5-mqtt-edge
+name: PS5 MQTT Local Control (Edge)
+description: Development build of PS5 MQTT Local Control
+url: https://github.com/RDLN7/ps5-mqtt-local-switch/tree/main/add-ons/ps5-mqtt-edge
 arch:
   - aarch64
   - amd64
@@ -48,4 +48,4 @@ schema:
   include_ps4_devices: bool
   login_passcode: str?
 stdin: true
-image: "ghcr.io/funkeyflo/ps5-mqtt-home-assistant-add-on"
+image: "ghcr.io/rdln7/ps5-mqtt-home-assistant-add-on"

@@ -37,6 +37,7 @@ import { join } from "node:path"
 const SERVER_DIR = join(__dirname, "..") // ps5-mqtt/server
 const APP_DIR = join(SERVER_DIR, "..") // ps5-mqtt
 const ROOT_DIR = join(APP_DIR, "..") // repo root
+const NATIVE_DIR = join(ROOT_DIR, "native", "local-remote-play")
 const CLIENT_DIR = join(APP_DIR, "client")
 const PACKAGED_DIR = join(SERVER_DIR, ".packaged")
 
@@ -78,6 +79,9 @@ cpSync(join(SERVER_DIR, "dist"), join(PACKAGED_DIR, "server", "dist"), {
 })
 
 cpSync(join(CLIENT_DIR, "dist"), join(PACKAGED_DIR, "client", "dist"), {
+  recursive: true,
+})
+cpSync(NATIVE_DIR, join(PACKAGED_DIR, "native", "local-remote-play"), {
   recursive: true,
 })
 

@@ -9,6 +9,8 @@ export interface Settings {
   checkAccountInterval: number
 
   credentialStoragePath: string
+  localCredentialStoragePath: string
+  localRemotePlayHelperPath: string
   allowPs4Devices: boolean
 
   // Optional PS5 login passcode, forwarded to playactor as `--pass-code` so

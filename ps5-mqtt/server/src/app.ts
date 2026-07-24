@@ -6,6 +6,7 @@ import path from "path"
 import createSagaMiddleware from "redux-saga"
 
 import { AppConfig, getAppConfig } from "./config"
+import { createLocalRemotePlayClient } from "./local-remote-play/client"
 import { createPlayactorClient } from "./playactor/client"
 import { PsnAccount } from "./psn-account"
 import reducer, {
@@ -97,6 +98,11 @@ export async function run() {
     credentialStoragePath:
       appConfig.credentialsStoragePath ??
       path.join(os.homedir(), ".config", "playactor", "credentials.json"),
+    localCredentialStoragePath:
+      process.env.LOCAL_RP_CREDENTIAL_STORAGE_PATH ??
+      "/config/ps5-mqtt/local-remote-play.json",
+    localRemotePlayHelperPath:
+      process.env.LOCAL_RP_HELPER_PATH ?? "/usr/local/bin/ps5-mqtt-local-rp",
     allowPs4Devices: appConfig.include_ps4_devices ?? true,
 
     loginPasscode: appConfig.login_passcode,
@@ -107,9 +113,14 @@ export async function run() {
     discoveryTopic: appConfig.mqtt.discovery_topic,
   }
 
+  const localRemotePlayClient = createLocalRemotePlayClient({
+    credentialStoragePath: settings.localCredentialStoragePath,
+    helperPath: settings.localRemotePlayHelperPath,
+  })
   const playactorClient = createPlayactorClient({
     credentialStoragePath: settings.credentialStoragePath,
     loginPasscode: settings.loginPasscode,
+    localRemotePlayClient,
   })
 
   try {
@@ -197,5 +208,9 @@ export async function run() {
     logError(e)
   }
 
-  setupWebserver(appConfig.frontendPort ?? 3000, settings)
+  setupWebserver(
+    appConfig.frontendPort ?? 3000,
+    settings,
+    localRemotePlayClient,
+  )
 }
