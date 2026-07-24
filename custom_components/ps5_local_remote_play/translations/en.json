@@ -1,0 +1,17 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PS5 Local Remote Play",
+        "description": "Enter the PS5 address and the registration key created with ActRemoteLink Account ID + PIN pairing.",
+        "data": {
+          "host": "PS5 address",
+          "regist_key": "Remote Play registration key"
+        }
+      }
+    },
+    "error": {
+      "invalid_registration_key": "The registration key must be hexadecimal."
+    }
+  }
+}

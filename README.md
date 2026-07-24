@@ -19,10 +19,36 @@
             <img src="https://img.shields.io/github/license/hassio-addons/addon-ssh.svg">
         </a>
     </div>
-    <h1>PS5 MQTT</h1>
+    <h1>PS5 MQTT Local Remote Play</h1>
 </div>
 
-Integrate your Sony Playstation 5 devices with Home Assistant using MQTT.
+> This is the **fishredleung fork** of PS5 MQTT. In addition to the upstream
+> MQTT add-on, it contains a HACS integration for PSN-free local PS5 wake via
+> ActRemoteLink and Chiaki-compatible Remote Play registration.
+
+Integrate your Sony PlayStation 5 devices with Home Assistant using MQTT, or
+use the included HACS integration for local Remote Play wake without Sony OAuth.
+
+## HACS: PS5 Local Remote Play (no PSN OAuth)
+
+This repository also contains a HACS custom integration in
+`custom_components/ps5_local_remote_play`. It wakes a PS5 from Rest Mode using
+a local Chiaki-compatible Remote Play registration key, without a PSN OAuth
+login.
+
+1. Use ActRemoteLink to obtain the Base64 account ID and a fresh pairing PIN.
+2. Run the local registration helper in `native/local-remote-play` to create a
+   `regist_key` for the PS5.
+3. Add this repository as a custom HACS repository of type **Integration** and
+   install **PS5 Local Remote Play**.
+4. In Home Assistant, add the integration and enter the PS5 IP address and the
+   generated registration key.
+
+The integration creates a local wake switch. A PS5 must be in Rest Mode and
+have network wake/Remote Play enabled; remote power-off is not part of the
+Remote Play discovery protocol.
+
+See the complete setup guide: [PSN-free Local Remote Play manual](docs/LOCAL_REMOTE_PLAY.md).
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]
