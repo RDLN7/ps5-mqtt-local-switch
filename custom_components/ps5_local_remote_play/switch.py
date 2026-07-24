@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_OFF, SERVICE_TURN_ON
+from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_OFF
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -125,8 +125,7 @@ class Ps5LocalWakeSwitch(SwitchEntity):
 
     async def async_turn_on(self, **kwargs: object) -> None:
         """Wake the console. The key works only while it is in Rest Mode."""
-        if not await self._async_call_mqtt_power(SERVICE_TURN_ON):
-            await self.hass.async_add_executor_job(_send_wakeup, self._host, self._regist_key)
+        await self.hass.async_add_executor_job(_send_wakeup, self._host, self._regist_key)
         self._attr_is_on = True
         self.async_write_ha_state()
 
