@@ -20,6 +20,7 @@ function* turnOffDevice(action: ChangePowerModeAction) {
       lodash.merge({}, action.payload.device, { transitioning: true }),
     ),
   )
+
   try {
     yield call(
       [playactor, playactor.standby],
@@ -30,11 +31,19 @@ function* turnOffDevice(action: ChangePowerModeAction) {
       updateHomeAssistant({
         ...action.payload.device,
         status: "STANDBY",
-        activity: undefined, // also clear the activity when a device turns off
+        activity: undefined,
       }),
     )
   } catch (e) {
     debugError(e)
+  } finally {
+    yield put(
+      setTransitioning(
+        lodash.merge({}, action.payload.device, {
+          transitioning: false,
+        }),
+      ),
+    )
   }
 }
 

@@ -23,6 +23,8 @@ export namespace HaMqtt {
 
     export interface MqttSensorEntity extends MqttEntity {
       device_class?: string
+      unit_of_measurement?: string
+      state_class?: string
     }
 
     interface MqttEntity {
@@ -35,6 +37,8 @@ export namespace HaMqtt {
       device?: MqttDevice
       enabled_by_default?: boolean
       json_attributes_topic?: string
+      entity_category?: "diagnostic"
+      value_template?: string
     }
   }
 

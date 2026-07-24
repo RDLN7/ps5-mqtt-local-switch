@@ -1,3 +1,19 @@
+## 1.7.3 - 2026-07-24
+
+### Added
+
+- Home Assistant diagnostic sensors for last seen time, response latency,
+  local credential health, and PS5 firmware.
+- Safe MQTT power-command logging that identifies `AWAKE` and `STANDBY`
+  requests without exposing credentials.
+
+### Fixed
+
+- Verify that the console is actually awake before publishing `AWAKE` to Home
+  Assistant.
+- Resume polling immediately after wake and Rest Mode transitions.
+- Continue checking other consoles while one device is transitioning.
+
 ## 1.7.2 - 2026-07-24
 
 ## What’s changed

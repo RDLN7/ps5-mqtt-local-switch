@@ -37,6 +37,7 @@ describe("Turn Off Device saga", () => {
     expect(dispatched.map((a) => a.type)).toEqual([
       "TRANSITIONING",
       "UPDATE_HOME_ASSISTANT",
+      "TRANSITIONING",
     ])
     const update = dispatched.find((a) => a.type === "UPDATE_HOME_ASSISTANT")
     expect(update?.payload).toMatchObject({
@@ -55,6 +56,7 @@ describe("Turn Off Device saga", () => {
       .run()
 
     expect(putActions(effects.put).map((a) => a.type)).toEqual([
+      "TRANSITIONING",
       "TRANSITIONING",
     ])
   })
@@ -97,6 +99,7 @@ function makeClient(over: Partial<PlayactorClient> = {}): PlayactorClient {
     wake: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
     standby: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
     check: jest.fn(),
+    credentialHealth: jest.fn().mockReturnValue("paired"),
     ...over,
   }
 }

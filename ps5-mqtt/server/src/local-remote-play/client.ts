@@ -13,6 +13,8 @@ export interface LocalRemotePlayCredential {
   server_mac: string
 }
 
+export type LocalCredentialHealth = "paired" | "missing" | "invalid"
+
 interface CredentialStore {
   devices: Record<string, LocalRemotePlayCredential>
 }
@@ -20,6 +22,7 @@ interface CredentialStore {
 export interface LocalRemotePlayClient {
   register(host: string, accountId: string, pin: string): Promise<void>
   hasCredential(host: string): boolean
+  credentialHealth(host: string): LocalCredentialHealth
   wake(host: string): Promise<void>
   standby(host: string, loginPasscode?: string): Promise<void>
 }
@@ -30,6 +33,16 @@ export interface LocalRemotePlayClientSettings {
 }
 
 const emptyStore = (): CredentialStore => ({ devices: {} })
+
+const isValidCredential = (
+  credential: LocalRemotePlayCredential | undefined,
+  host: string,
+): credential is LocalRemotePlayCredential =>
+  credential?.host === host &&
+  /^[0-9a-fA-F]{1,16}$/.test(credential.regist_key) &&
+  /^[0-9a-fA-F]{32}$/.test(credential.rp_key) &&
+  Number.isInteger(credential.rp_key_type) &&
+  /^[0-9a-fA-F]{12}$/.test(credential.server_mac)
 
 export function createLocalRemotePlayClient({
   credentialStoragePath,
@@ -75,7 +88,7 @@ export function createLocalRemotePlayClient({
 
   const credentialFor = (host: string): LocalRemotePlayCredential => {
     const credential = readStore().devices[host]
-    if (!credential) {
+    if (!isValidCredential(credential, host)) {
       throw new Error(
         `PS5 ${host} is not paired. Open the add-on Web UI and select Pair local control.`,
       )
@@ -97,11 +110,7 @@ export function createLocalRemotePlayClient({
         .find((line) => line.startsWith("{"))
       if (!jsonLine) throw new Error("Pairing helper returned no credentials")
       const credential = JSON.parse(jsonLine) as LocalRemotePlayCredential
-      if (
-        credential.host !== host ||
-        !/^[0-9a-fA-F]{1,16}$/.test(credential.regist_key) ||
-        !/^[0-9a-fA-F]{32}$/.test(credential.rp_key)
-      ) {
+      if (!isValidCredential(credential, host)) {
         throw new Error("Pairing helper returned invalid credentials")
       }
       const store = readStore()
@@ -110,7 +119,18 @@ export function createLocalRemotePlayClient({
     },
 
     hasCredential(host: string): boolean {
-      return Boolean(readStore().devices[host])
+      return this.credentialHealth(host) === "paired"
+    },
+
+    credentialHealth(host: string): LocalCredentialHealth {
+      if (!fs.existsSync(credentialStoragePath)) return "missing"
+      try {
+        const credential = readStore().devices[host]
+        if (!credential) return "missing"
+        return isValidCredential(credential, host) ? "paired" : "invalid"
+      } catch {
+        return "invalid"
+      }
     },
 
     async wake(host: string): Promise<void> {

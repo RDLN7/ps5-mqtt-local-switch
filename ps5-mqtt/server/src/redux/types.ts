@@ -1,4 +1,5 @@
 import { Playstation } from "../device"
+import type { LocalCredentialHealth } from "../local-remote-play/client"
 import { PsnAccount, PsnAccountAuthenticationInfo } from "../psn-account"
 
 export type Device = Playstation &
@@ -16,6 +17,9 @@ export type Account = PsnAccount & {
 export type DeviceState = {
   status: SwitchStatus
   available: boolean
+  lastSeen?: string
+  latencyMs?: number | null
+  credentialHealth?: LocalCredentialHealth
 
   activity?: PsnAccount.AccountActivity & {
     activePlayers: string[]

@@ -12,12 +12,19 @@ const errorLogger = createErrorLogger()
 
 function* checkDevicesState() {
   const playactor: PlayactorClient = yield getContext(PLAYACTOR_CLIENT)
-
   const devices: Device[] = yield select(getDeviceList)
+
   for (const device of devices) {
+    const checkedAt = Date.now()
+
     try {
       const updatedDevice: Device = yield call(
         [playactor, playactor.check],
+        device.address.address,
+      )
+      const lastSeen = new Date().toISOString()
+      const latencyMs = Date.now() - checkedAt
+      const credentialHealth = playactor.credentialHealth(
         device.address.address,
       )
 
@@ -27,35 +34,38 @@ function* checkDevicesState() {
           device.transitioning,
           updatedDevice.status,
         )
-        break
+        continue
       }
 
-      // only send updates if ps5 is truly changing states or when ps5 has become available
-      if (device.status !== updatedDevice.status || !device.available) {
-        debug("Update HA")
-        yield put(
-          updateHomeAssistant({
-            ...device,
-            status: updatedDevice.status,
-            activity:
-              updatedDevice.status !== "AWAKE"
-                ? undefined
-                : updatedDevice.activity,
-            available: true,
-          }),
-        )
-      }
+      debug("Update HA")
+      yield put(
+        updateHomeAssistant({
+          ...device,
+          ...updatedDevice,
+          status: updatedDevice.status,
+          activity:
+            updatedDevice.status !== "AWAKE"
+              ? undefined
+              : updatedDevice.activity,
+          available: true,
+          lastSeen,
+          latencyMs,
+          credentialHealth,
+        }),
+      )
     } catch (e) {
-      // previously available ps5 cannot be located
       yield put(
         updateHomeAssistant({
           ...device,
           status: "UNKNOWN",
           available: false,
           activity: undefined,
+          latencyMs: null,
+          credentialHealth: playactor.credentialHealth(
+            device.address.address,
+          ),
         }),
       )
-
       errorLogger(e)
     }
   }

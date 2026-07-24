@@ -164,6 +164,11 @@ export async function run() {
         registerDevice({
           ...device,
           available: device.available ?? true,
+          lastSeen: device.lastSeen ?? new Date().toISOString(),
+          latencyMs: device.latencyMs ?? null,
+          credentialHealth:
+            device.credentialHealth ??
+            playactorClient.credentialHealth(device.address.address),
           activity: undefined,
           normalizedName:
             device.normalizedName ??
@@ -190,6 +195,7 @@ export async function run() {
         const device = devices[deviceId]
         if (device !== undefined && deviceProperty === "power") {
           const data = payload.toString()
+          debugMqtt("MQTT power command", deviceId, data)
           store.dispatch(setPowerMode(device, data as SwitchStatus))
         }
       }

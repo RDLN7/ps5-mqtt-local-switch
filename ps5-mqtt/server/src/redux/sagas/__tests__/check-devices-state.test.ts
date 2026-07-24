@@ -13,7 +13,7 @@ describe("Check Devices State saga", () => {
     jest.clearAllMocks()
   })
 
-  test("does not update HA when status is unchanged and device is available", async () => {
+  test("updates diagnostics when status is unchanged and device is available", async () => {
     const device = makeDevice({ status: "AWAKE", available: true })
     const client = makeClient({
       check: jest.fn<Promise<Device>, [string]>().mockResolvedValue(device),
@@ -25,7 +25,13 @@ describe("Check Devices State saga", () => {
       .run()
 
     expect(client.check).toHaveBeenCalledWith("192.168.0.10")
-    expect(putActions(effects.put)).toHaveLength(0)
+    const dispatched = putActions(effects.put)
+    expect(dispatched).toHaveLength(1)
+    expect(dispatched[0].payload).toMatchObject({
+      status: "AWAKE",
+      available: true,
+      credentialHealth: "paired",
+    })
   })
 
   test("updates HA when the device status changes", async () => {
@@ -114,6 +120,7 @@ function makeClient(over: Partial<PlayactorClient> = {}): PlayactorClient {
     wake: jest.fn(),
     standby: jest.fn(),
     check: jest.fn<Promise<Device>, [string]>().mockResolvedValue(makeDevice()),
+    credentialHealth: jest.fn().mockReturnValue("paired"),
     ...over,
   }
 }

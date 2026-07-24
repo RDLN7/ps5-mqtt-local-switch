@@ -29,6 +29,11 @@ function* updateHomeAssistant({ payload: device }: UpdateHomeAssistantAction) {
       title_id: device.activity?.titleId,
       title_image: device.activity?.titleImage,
       title_name: device.activity?.titleName,
+      last_seen: device.lastSeen,
+      latency_ms: device.latencyMs,
+      credential_health: device.credentialHealth ?? "missing",
+      firmware: device.systemVersion,
+      transitioning: device.transitioning,
     }),
     { qos: 1, retain: true },
   )

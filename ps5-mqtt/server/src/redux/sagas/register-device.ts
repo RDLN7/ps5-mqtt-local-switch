@@ -72,6 +72,82 @@ function* registerDevice({ payload: device }: RegisterDeviceAction) {
     { qos: 1, retain: true },
   )
 
+  const diagnostics: Array<
+    [string, HaMqtt.Config.MqttSensorEntity]
+  > = [
+    [
+      "last_seen",
+      {
+        unique_id: `${device.id}_last_seen_ps5mqtt`,
+        object_id: `${device.id}_last_seen`,
+        state_topic: `ps5-mqtt/${device.id}`,
+        name: "last seen",
+        device_class: "timestamp",
+        entity_category: "diagnostic",
+        value_template:
+          "{{ value_json.last_seen if value_json.last_seen else 'unknown' }}",
+        device: deviceConfig,
+      },
+    ],
+    [
+      "latency",
+      {
+        unique_id: `${device.id}_latency_ps5mqtt`,
+        object_id: `${device.id}_latency`,
+        state_topic: `ps5-mqtt/${device.id}`,
+        name: "latency",
+        icon: "mdi:timer-outline",
+        unit_of_measurement: "ms",
+        state_class: "measurement",
+        entity_category: "diagnostic",
+        value_template:
+          "{{ value_json.latency_ms if value_json.latency_ms is not none else 'unknown' }}",
+        device: deviceConfig,
+      },
+    ],
+    [
+      "credential_health",
+      {
+        unique_id: `${device.id}_credential_health_ps5mqtt`,
+        object_id: `${device.id}_credential_health`,
+        state_topic: `ps5-mqtt/${device.id}`,
+        name: "credential health",
+        icon: "mdi:key-check",
+        entity_category: "diagnostic",
+        value_template: "{{ value_json.credential_health }}",
+        device: deviceConfig,
+      },
+    ],
+    [
+      "firmware",
+      {
+        unique_id: `${device.id}_firmware_ps5mqtt`,
+        object_id: `${device.id}_firmware`,
+        state_topic: `ps5-mqtt/${device.id}`,
+        name: "firmware",
+        icon: "mdi:chip",
+        entity_category: "diagnostic",
+        value_template: "{{ value_json.firmware }}",
+        device: deviceConfig,
+      },
+    ],
+  ]
+
+  for (const [objectId, config] of diagnostics) {
+    yield call<
+      (
+        topic: string,
+        message: string | Buffer,
+        opts: MQTT.IClientPublishOptions,
+      ) => Promise<MQTT.IPublishPacket>
+    >(
+      mqtt.publish.bind(mqtt),
+      `${discoveryTopic}/sensor/${device.id}/${objectId}/config`,
+      JSON.stringify(config),
+      { qos: 1, retain: true },
+    )
+  }
+
   yield put(addDevice(device))
 
   yield put(updateHomeAssistant(device))

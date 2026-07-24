@@ -1,7 +1,8 @@
 import { Discovery } from "playactor/dist/discovery"
 import { DeviceType } from "playactor/dist/discovery/model"
 import { call, getContext, put, select } from "redux-saga/effects"
-import { SETTINGS, Settings } from "../../services"
+import type { PlayactorClient } from "../../playactor/client"
+import { PLAYACTOR_CLIENT, SETTINGS, Settings } from "../../services"
 import { registerDevice } from "../action-creators"
 import { getDeviceRegistry } from "../selectors"
 import { Device } from "../types"
@@ -28,6 +29,7 @@ const useAsyncIterableWithSaga =
 function* discoverDevices() {
   const { allowPs4Devices, deviceDiscoveryBroadcastAddress }: Settings =
     yield getContext(SETTINGS)
+  const playactor: PlayactorClient = yield getContext(PLAYACTOR_CLIENT)
 
   const discovery = new Discovery({
     deviceIp: deviceDiscoveryBroadcastAddress,
@@ -55,6 +57,11 @@ function* discoverDevices() {
         registerDevice({
           ...device,
           available: true,
+          lastSeen: new Date().toISOString(),
+          latencyMs: null,
+          credentialHealth: playactor.credentialHealth(
+            device.address.address,
+          ),
           normalizedName: device.name
             .replace(/[^a-zA-Z\d\s-_:]/g, "")
             .replace(/[\s-]/g, "_")

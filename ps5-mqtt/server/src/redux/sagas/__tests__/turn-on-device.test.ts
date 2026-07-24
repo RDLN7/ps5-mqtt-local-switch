@@ -37,6 +37,7 @@ describe("Turn On Device saga", () => {
     expect(dispatched.map((a) => a.type)).toEqual([
       "TRANSITIONING",
       "UPDATE_HOME_ASSISTANT",
+      "TRANSITIONING",
     ])
     const update = dispatched.find((a) => a.type === "UPDATE_HOME_ASSISTANT")
     expect(update?.payload).toMatchObject({ status: "AWAKE" })
@@ -52,6 +53,7 @@ describe("Turn On Device saga", () => {
       .run()
 
     expect(putActions(effects.put).map((a) => a.type)).toEqual([
+      "TRANSITIONING",
       "TRANSITIONING",
     ])
   })
@@ -86,7 +88,10 @@ function makeClient(over: Partial<PlayactorClient> = {}): PlayactorClient {
   return {
     wake: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
     standby: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
-    check: jest.fn(),
+    check: jest
+      .fn<Promise<Device>, [string]>()
+      .mockResolvedValue(makeDevice({ status: "AWAKE" })),
+    credentialHealth: jest.fn().mockReturnValue("paired"),
     ...over,
   }
 }

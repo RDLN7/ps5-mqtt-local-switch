@@ -2,6 +2,7 @@ import createDebugger from "debug"
 import sh from "shelljs"
 
 import type { LocalRemotePlayClient } from "../local-remote-play/client"
+import type { LocalCredentialHealth } from "../local-remote-play/client"
 import type { Device } from "../redux/types"
 import { buildPassCodeArg } from "../util/pass-code"
 
@@ -24,6 +25,7 @@ export interface PlayactorClient {
   wake(ip: string): Promise<void>
   standby(ip: string): Promise<void>
   check(ip: string): Promise<Device>
+  credentialHealth(ip: string): LocalCredentialHealth
 }
 
 export function createPlayactorClient({
@@ -59,6 +61,10 @@ export function createPlayactorClient({
   }
 
   return {
+    credentialHealth(ip: string): LocalCredentialHealth {
+      return localRemotePlayClient?.credentialHealth(ip) ?? "missing"
+    },
+
     async wake(ip: string): Promise<void> {
       if (localRemotePlayClient?.hasCredential(ip)) {
         await localRemotePlayClient.wake(ip)
