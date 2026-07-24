@@ -56,18 +56,44 @@ static int decode_hex(const char *value, uint8_t *output, size_t output_size)
 	return 1;
 }
 
-static int parse_regist_key(const char *key, char output[CHIAKI_SESSION_AUTH_SIZE])
+static int parse_regist_key(
+	const char *key,
+	char output[CHIAKI_SESSION_AUTH_SIZE])
 {
 	size_t size = strlen(key);
-	if(size == 0 || size > CHIAKI_SESSION_AUTH_SIZE)
+	if(size == 0)
 		return 0;
-	for(size_t i = 0; i < size; i++)
+	memset(output, 0, CHIAKI_SESSION_AUTH_SIZE);
+
+	/*
+	 * Chiaki stores the registration key as up to 8 ASCII hex characters.
+	 * Older ps5-mqtt/playactor credentials store the PS5-RegistKey response
+	 * header instead, where those ASCII bytes are themselves hex-encoded.
+	 * Accept both forms so existing installations migrate without re-pairing.
+	 */
+	if(size <= sizeof(uint64_t))
 	{
-		if(!isxdigit((unsigned char)key[i]))
+		for(size_t i = 0; i < size; i++)
+		{
+			if(!isxdigit((unsigned char)key[i]))
+				return 0;
+		}
+		memcpy(output, key, size);
+		return 1;
+	}
+
+	if(size != sizeof(uint64_t) * 2)
+		return 0;
+	for(size_t i = 0; i < sizeof(uint64_t); i++)
+	{
+		char pair[3] = { key[i * 2], key[i * 2 + 1], '\0' };
+		if(!isxdigit((unsigned char)pair[0]) ||
+			!isxdigit((unsigned char)pair[1]))
+			return 0;
+		output[i] = (char)strtoul(pair, NULL, 16);
+		if(!isxdigit((unsigned char)output[i]))
 			return 0;
 	}
-	memset(output, 0, CHIAKI_SESSION_AUTH_SIZE);
-	memcpy(output, key, size);
 	return 1;
 }
 
@@ -174,7 +200,7 @@ static int wake_console(const char *host, const char *regist_key_value)
 	}
 
 	errno = 0;
-	uint64_t credential = strtoull(regist_key_value, NULL, 16);
+	uint64_t credential = strtoull(regist_key, NULL, 16);
 	if(errno != 0 || credential == 0)
 	{
 		fprintf(stderr, "Invalid wake credential.\n");

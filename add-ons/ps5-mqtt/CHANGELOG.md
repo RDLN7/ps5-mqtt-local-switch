@@ -1,3 +1,13 @@
+## 1.7.2 - 2026-07-24
+
+### Fixed
+
+- Decode the original ps5-mqtt `PS5-RegistKey` credential format before
+  starting a local Chiaki session. This restores PSN-free Rest Mode control
+  for users whose credentials were migrated from the original add-on.
+- Use the decoded registration key when sending local wake packets while
+  continuing to support credentials created by this fork's pairing UI.
+
 ## 1.7.1 - 2026-07-24
 
 ## What’s changed
