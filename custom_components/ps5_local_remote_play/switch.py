@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import socket
+from datetime import timedelta
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -10,6 +11,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_HOST, CONF_REGIST_KEY, DOMAIN, PS5_DISCOVERY_PORT, PS5_DISCOVERY_PROTOCOL
+
+
+SCAN_INTERVAL = timedelta(seconds=30)
+DISCOVERY_TIMEOUT = 3
 
 
 def _send_wakeup(host: str, regist_key: str) -> None:
@@ -28,6 +33,27 @@ def _send_wakeup(host: str, regist_key: str) -> None:
         sock.sendto(packet, address)
 
 
+def _get_power_state(host: str) -> bool | None:
+    """Query the local PS5 discovery endpoint for its real power state."""
+    request = (
+        "SRCH * HTTP/1.1\n"
+        f"device-discovery-protocol-version:{PS5_DISCOVERY_PROTOCOL}\n"
+    ).encode()
+    address = socket.getaddrinfo(host, PS5_DISCOVERY_PORT, type=socket.SOCK_DGRAM)[0][4]
+
+    with socket.socket(socket.AF_INET6 if len(address) == 4 else socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.settimeout(DISCOVERY_TIMEOUT)
+        sock.sendto(request, address)
+        response, _ = sock.recvfrom(1024)
+
+    status_line = response.decode("ascii", errors="ignore").splitlines()[0] if response else ""
+    if " 200 " in status_line:
+        return True
+    if " 620 " in status_line:
+        return False
+    return None
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -41,19 +67,26 @@ class Ps5LocalWakeSwitch(SwitchEntity):
     _attr_has_entity_name = True
     _attr_name = "Power"
     _attr_icon = "mdi:sony-playstation"
+    _attr_should_poll = True
 
     def __init__(self, entry: ConfigEntry) -> None:
         self._entry = entry
         self._host = entry.data[CONF_HOST]
         self._regist_key = entry.data[CONF_REGIST_KEY]
         self._attr_unique_id = f"{self._host}_local_remote_play_power"
-        self._attr_is_on = False
+        self._attr_is_on = None
+        self._attr_available = True
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._host)},
             "name": f"PS5 ({self._host})",
             "manufacturer": "Sony",
             "model": "PlayStation 5",
         }
+
+    async def async_added_to_hass(self) -> None:
+        """Publish a real state immediately instead of waiting for the first poll."""
+        await super().async_added_to_hass()
+        await self.async_update()
 
     async def async_turn_on(self, **kwargs: object) -> None:
         """Wake the console. The key works only while it is in Rest Mode."""
@@ -62,6 +95,17 @@ class Ps5LocalWakeSwitch(SwitchEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: object) -> None:
-        """Remote Play cannot power a PS5 off; mark the optimistic wake state off."""
-        self._attr_is_on = False
+        """Refresh rather than falsely claiming to power the console off."""
+        await self.async_update()
         self.async_write_ha_state()
+
+    async def async_update(self) -> None:
+        """Refresh the state from the PS5's local discovery response."""
+        try:
+            state = await self.hass.async_add_executor_job(_get_power_state, self._host)
+        except (OSError, socket.timeout):
+            state = None
+
+        self._attr_available = state is not None
+        if state is not None:
+            self._attr_is_on = state
