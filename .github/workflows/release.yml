@@ -7,7 +7,17 @@ on:
   # never push, commit, or move a release tag — there's no published release
   # to anchor those side effects to. To actually ship, publish a GitHub
   # release (draft-release.yml keeps one up to date with the next version).
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish images for an existing release tag
+        required: true
+        type: boolean
+        default: false
+      release_tag:
+        description: Existing release tag (required when publish is true)
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -54,7 +64,9 @@ jobs:
         id: version
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_TAG_NAME: >-
+            ${{ github.event.release.tag_name || inputs.release_tag }}
+          FORCE_PUBLISH: ${{ inputs.publish && 'true' || 'false' }}
         run: yarn resolve-release-version
 
   static-analysis:
@@ -502,7 +514,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release edit "${{ github.event.release.tag_name }}" \
+          gh release edit "${{ needs.version.outputs.tag }}" \
             --draft \
             --repo "${{ github.repository }}"
 
@@ -514,4 +526,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api -X DELETE \
-            "repos/${{ github.repository }}/git/refs/tags/${{ github.event.release.tag_name }}"
+            "repos/${{ github.repository }}/git/refs/tags/${{ needs.version.outputs.tag }}"

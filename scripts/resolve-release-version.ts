@@ -137,8 +137,10 @@ function resolveFromMergedPrLabels(): { version: string; tag: string } {
 }
 
 const isReleaseEvent = process.env.GITHUB_EVENT_NAME === "release"
+const isForcedPublish = process.env.FORCE_PUBLISH === "true"
+const isPublishRun = isReleaseEvent || isForcedPublish
 
-const { version, tag } = isReleaseEvent
+const { version, tag } = isPublishRun
   ? (() => {
       const t = resolveFromPublishedRelease()
       console.log(`Triggered by published release ${t}`)
@@ -146,7 +148,7 @@ const { version, tag } = isReleaseEvent
     })()
   : resolveFromMergedPrLabels()
 
-const shouldPublish = isReleaseEvent
+const shouldPublish = isPublishRun
 
 console.log(
   `Resolved version: ${version} (${tag}), should_publish=${shouldPublish}`,
