@@ -1,5 +1,10 @@
 ## 1.7.1 - 2026-07-24
 
+## What’s changed
+* No changes
+
+## 1.7.1 - 2026-07-24
+
 ### Added
 
 - Bundled Chiaki/CloudPad local pairing helper for PS5.
