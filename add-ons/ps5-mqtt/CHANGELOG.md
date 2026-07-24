@@ -1,5 +1,10 @@
 ## 1.7.2 - 2026-07-24
 
+## What’s changed
+* No changes
+
+## 1.7.2 - 2026-07-24
+
 ### Fixed
 
 - Decode the original ps5-mqtt `PS5-RegistKey` credential format before
