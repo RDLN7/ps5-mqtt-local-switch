@@ -7,7 +7,10 @@ from datetime import timedelta
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_OFF, SERVICE_TURN_ON
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_HOST, CONF_REGIST_KEY, DOMAIN, PS5_DISCOVERY_PORT, PS5_DISCOVERY_PROTOCOL
@@ -88,15 +91,52 @@ class Ps5LocalWakeSwitch(SwitchEntity):
         await super().async_added_to_hass()
         await self.async_update()
 
+    def _mqtt_power_entity(self) -> str | None:
+        """Find the PS5 MQTT power switch for this host, if it is installed.
+
+        The local registration credential can wake a console but cannot put it
+        into Rest Mode. PS5 MQTT has the authenticated Remote Play controller
+        required for standby, so use it when it manages this same IP address.
+        """
+        entity_registry = er.async_get(self.hass)
+        device_registry = dr.async_get(self.hass)
+        for candidate in entity_registry.entities.values():
+            if (
+                not candidate.entity_id.startswith("switch.")
+                or candidate.platform == DOMAIN
+                or not candidate.entity_id.endswith("_power")
+                or candidate.device_id is None
+            ):
+                continue
+            device = device_registry.async_get(candidate.device_id)
+            if device is not None and ("ip", self._host) in device.connections:
+                return candidate.entity_id
+        return None
+
+    async def _async_call_mqtt_power(self, service: str) -> bool:
+        """Call the matching PS5 MQTT power entity when available."""
+        entity_id = self._mqtt_power_entity()
+        if entity_id is None:
+            return False
+        await self.hass.services.async_call(
+            "switch", service, {ATTR_ENTITY_ID: entity_id}, blocking=True
+        )
+        return True
+
     async def async_turn_on(self, **kwargs: object) -> None:
         """Wake the console. The key works only while it is in Rest Mode."""
-        await self.hass.async_add_executor_job(_send_wakeup, self._host, self._regist_key)
+        if not await self._async_call_mqtt_power(SERVICE_TURN_ON):
+            await self.hass.async_add_executor_job(_send_wakeup, self._host, self._regist_key)
         self._attr_is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: object) -> None:
-        """Refresh rather than falsely claiming to power the console off."""
-        await self.async_update()
+        """Put the console into Rest Mode through PS5 MQTT when available."""
+        if not await self._async_call_mqtt_power(SERVICE_TURN_OFF):
+            raise HomeAssistantError(
+                "Rest Mode requires the PS5 MQTT power controller for this PS5"
+            )
+        self._attr_is_on = False
         self.async_write_ha_state()
 
     async def async_update(self) -> None:
