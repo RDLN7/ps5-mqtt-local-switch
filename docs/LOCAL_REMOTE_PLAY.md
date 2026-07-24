@@ -1,27 +1,27 @@
-# PS5 Local Remote Play for Home Assistant
+# PS5 MQTT Local Switch for Home Assistant
 
-This guide explains the **PS5 Local Remote Play** HACS integration included in
-the `fishredleung/ps5-mqtt` fork. It adds a local-network wake switch for a
-PS5 in Rest Mode without using Sony OAuth, an NPSSO token, or a PSN sign-in in
-Home Assistant.
+This guide explains the **PS5 MQTT Local Switch** HACS integration included in
+the `fishredleung/ps5-mqtt` fork. It modifies the original PS5 MQTT project to
+add a local-network wake switch for a PS5 in Rest Mode without using Sony
+OAuth, an NPSSO token, or a PSN account/device in Home Assistant.
 
 The original PS5 MQTT project was created by **Florentijn Cornet (FunkeyFlo)**
 and **Andrew Smith (andrew-codes)**. This fork preserves the original project
-and adds the local Remote Play path described here.
+and adds the local switch authentication path described here.
 
 > [!WARNING]
-> This is an advanced, local-network setup for hardware you own. It does not
-> bypass the PS5's Remote Play pairing requirement. Keep your registration key
-> private: anyone on your network who has it can send a wake request to the
-> console.
+> This is an advanced, local-network setup for hardware you own. The PS5
+> requires a one-time device registration; this fork does not bypass it. Keep
+> your registration key private: anyone on your network who has it can send a
+> wake request to the console.
 
-## What this integration does
+## What this fork does
 
 ```text
 ActRemoteLink account ID + temporary pairing PIN
               │
               ▼
-      Local Remote Play registration
+      Local device registration
               │
               ▼
    Persistent registration key (regist_key)
@@ -31,8 +31,8 @@ Home Assistant sends a local UDP wake packet to the PS5
 ```
 
 The resulting Home Assistant entity is a **wake switch**. Turning it on asks a
-PS5 in Rest Mode to wake. It is not a streaming client and it does not show
-the game currently being played.
+PS5 in Rest Mode to wake. This is not a Remote Play or game-streaming project;
+the Remote Play protocol is used only for the local registration mechanism.
 
 ## Requirements
 
@@ -118,13 +118,13 @@ PS5 user is foreground, and retry while the console is awake and reachable.
 2. Open the menu and choose **Custom repositories**.
 3. Add `https://github.com/fishredleung/ps5-mqtt`.
 4. Set the category to **Integration** and save.
-5. Find **PS5 MQTT Local Remote Play**, install it, and restart Home Assistant.
+5. Find **PS5 MQTT Local Switch**, install it, and restart Home Assistant.
 
 ## 5. Configure the PS5 wake switch
 
 1. Open **Settings → Devices & services**.
 2. Select **Add integration**.
-3. Search for **PS5 Local Remote Play**.
+3. Search for **PS5 MQTT Local Switch**.
 4. Enter the PS5 IP address and the `regist_key` created in step 3.
 5. Finish setup.
 

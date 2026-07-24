@@ -19,28 +19,29 @@
             <img src="https://img.shields.io/github/license/hassio-addons/addon-ssh.svg">
         </a>
     </div>
-    <h1>PS5 MQTT Local Remote Play</h1>
+    <h1>PS5 MQTT Local Switch</h1>
 </div>
 
-> This is the **fishredleung fork** of PS5 MQTT. In addition to the upstream
-> MQTT add-on, it contains a HACS integration for PSN-free local PS5 wake via
-> ActRemoteLink and Chiaki-compatible Remote Play registration.
+> This is the **fishredleung fork** of PS5 MQTT. It adds a HACS integration
+> for a PSN-free local PS5 wake switch. The switch does not need a PSN account
+> or PSN device configured in Home Assistant.
 
 Integrate your Sony PlayStation 5 devices with Home Assistant using MQTT, or
-use the included HACS integration for local Remote Play wake without Sony OAuth.
+use the included HACS integration for local switch control without Sony OAuth.
 
-## HACS: PS5 Local Remote Play (no PSN OAuth)
+## HACS: PS5 MQTT Local Switch (no PSN OAuth)
 
 This repository also contains a HACS custom integration in
-`custom_components/ps5_local_remote_play`. It wakes a PS5 from Rest Mode using
-a local Chiaki-compatible Remote Play registration key, without a PSN OAuth
-login.
+`custom_components/ps5_local_remote_play`. It creates a local PS5 wake switch
+without a PSN OAuth login or PSN device in Home Assistant. Its one-time local
+registration step uses the PS5 Remote Play protocol only to obtain the switch
+credential.
 
 1. Use ActRemoteLink to obtain the Base64 account ID and a fresh pairing PIN.
 2. Run the local registration helper in `native/local-remote-play` to create a
    `regist_key` for the PS5.
 3. Add this repository as a custom HACS repository of type **Integration** and
-   install **PS5 Local Remote Play**.
+   install **PS5 MQTT Local Switch**.
 4. In Home Assistant, add the integration and enter the PS5 IP address and the
    generated registration key.
 
@@ -48,7 +49,7 @@ The integration creates a local wake switch. A PS5 must be in Rest Mode and
 have network wake/Remote Play enabled; remote power-off is not part of the
 Remote Play discovery protocol.
 
-See the complete setup guide: [PSN-free Local Remote Play manual](docs/LOCAL_REMOTE_PLAY.md).
+See the complete setup guide: [PSN-free local switch manual](docs/LOCAL_REMOTE_PLAY.md).
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]

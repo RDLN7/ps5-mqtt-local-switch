@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "PS5 Local Remote Play",
-        "description": "Enter the PS5 address and the registration key created with ActRemoteLink Account ID + PIN pairing.",
+        "title": "PS5 MQTT Local Switch",
+        "description": "Enter the PS5 address and the local switch registration key created with ActRemoteLink Account ID + PIN pairing.",
         "data": {
           "host": "PS5 address",
           "regist_key": "Remote Play registration key"

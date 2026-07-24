@@ -1,6 +1,6 @@
 {
   "domain": "ps5_local_remote_play",
-  "name": "PS5 Local Remote Play",
+  "name": "PS5 MQTT Local Switch",
   "codeowners": ["@FunkeyFlo"],
   "config_flow": true,
   "documentation": "https://github.com/FunkeyFlo/ps5-mqtt",
