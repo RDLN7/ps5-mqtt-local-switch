@@ -1,107 +1,246 @@
 # PS5 MQTT Local Control manual
 
-This is a Home Assistant add-on based on the original PS5 MQTT project. It is
-not a game-streaming application. It retains the original MQTT device
-discovery and state logic, and replaces the power-switch credential path with
-local Remote Play pairing.
-
-Original authors: **Florentijn Cornet (FunkeyFlo)** and
+PS5 MQTT Local Control is a Home Assistant add-on based on the original
+**PS5 MQTT** project by **Florentijn Cornet (FunkeyFlo)** and
 **Andrew Smith (andrew-codes)**.
+
+It keeps the original MQTT discovery and state model while adding local
+Remote Play pairing for the power switch. It is not a HACS integration and it
+does not stream games. The add-on image contains the MQTT application, Web UI,
+pairing helper, wake implementation, and Rest Mode implementation.
+
+## Supported functions
+
+- Local PS5/PS4 discovery
+- Home Assistant MQTT device discovery
+- PS5 wake from Rest Mode
+- PS5 Rest Mode request
+- Verified wake state
+- Last-seen diagnostic sensor
+- Network-response latency diagnostic sensor
+- Local credential-health diagnostic sensor
+- Firmware diagnostic sensor
+- Optional PSN presence and game metadata
+- Persistent local pairing credentials
+
+The console does not expose actual electrical power consumption through these
+protocols. Use an energy-monitoring smart plug if watts or kWh are required.
 
 ## Requirements
 
-- Home Assistant OS or Supervised with Apps/add-ons support
+- Home Assistant OS or a supervised installation with Apps/add-on support
 - An MQTT broker
-- PS5 and Home Assistant on the same routed local network
+- A PS5 and Home Assistant on the same routed local network
 - Remote Play enabled on the PS5
-- The Base64 Account ID for the PS5 user being paired
-- Physical access to generate a temporary Link Device PIN
+- The Base64 Account ID of the PS5 user being paired
+- Access to the PS5 to generate a temporary **Link Device** PIN
 
-No separate executable, Android app, container, HACS integration, Sony OAuth
+No separate Android application, HACS component, Docker container, Sony OAuth
 flow, NPSSO token, or PSN login in Home Assistant is required for power
 control.
 
-## Installation
+## Prepare the PS5
 
-1. Add `https://github.com/RDLN7/ps5-mqtt-local-switch` as an App store
-   repository.
-2. Install **PS5 MQTT Local Control**.
-3. Leave `mqtt: {}` to use Home Assistant's MQTT service discovery, or enter a
-   broker host, port, user, and password.
-4. Start the add-on.
-5. Open the add-on Web UI.
+On the PS5, open **Settings → System → Power Saving → Features Available in
+Rest Mode** and enable:
 
-The add-on publishes Home Assistant MQTT discovery entities automatically.
+- **Stay Connected to the Internet**
+- **Enable Turning On PS5 from Network**
 
-## Pairing a PS5
+Then open **Settings → System → Remote Play** and enable Remote Play.
 
-1. Sign into the PS5 user you want Remote Play to use and leave that user in
-   the foreground.
-2. On the PS5, open **Settings → System → Remote Play** and ensure Remote Play
-   is enabled.
-3. Open **Link Device** to generate a fresh 8-digit PIN.
-4. In the add-on Web UI, refresh devices and select **Pair local control** on
-   that PS5.
-5. Enter the selected user's Base64 Account ID and the fresh PIN.
-6. Submit before the PIN expires.
+These settings are required for reliable wake from Rest Mode. They do not
+allow pairing without physical access to the console's Link Device screen.
 
-Pairing produces a registration key and a 16-byte Remote Play key. They are
-stored with mode `0600` in:
+## Install the add-on
+
+1. In Home Assistant, open **Settings → Apps → App store → Repositories**.
+2. Add:
+   `https://github.com/RDLN7/ps5-mqtt-local-switch`
+3. Install **PS5 MQTT Local Control**.
+4. Leave `mqtt: {}` to use Home Assistant MQTT service discovery, or enter the
+   external broker connection details.
+5. Start the add-on.
+6. Open its Web UI.
+
+The add-on automatically publishes Home Assistant MQTT discovery
+configurations. This repository is an add-on repository, so the installation
+shortcut opens the Home Assistant App store repository flow, not HACS.
+
+## Pair a PS5
+
+1. Sign in to the PS5 user that will be paired and leave that user in the
+   foreground.
+2. Open **Settings → System → Remote Play → Link Device**.
+3. Generate a fresh eight-digit PIN.
+4. In the add-on Web UI, refresh the device list.
+5. Select the PS5 and choose **Pair local control**.
+6. Enter that user's Base64 Account ID and the fresh PIN.
+7. Wait for the Web UI to confirm that pairing succeeded.
+
+The PIN is temporary and is not a registration key. It can normally be used
+for only one pairing attempt. If a PIN expires or has already been used,
+generate another PIN. The same PS5 user can be paired again with a new PIN.
+
+Successful pairing stores the registration key, Remote Play key, key type, and
+console identity in:
 
 `/config/ps5-mqtt/local-remote-play.json`
 
-Do not share or publish this file. Delete only the entry for a console if you
-intend to pair it again.
+Do not edit this file manually unless directed by a migration guide. Pair again
+from the Web UI when credentials are missing or invalid.
 
-## Power switch behavior
+## Home Assistant entities
 
-- **On**: sends a local Chiaki wake packet using the saved registration key.
-- **Off**: opens a minimal local Remote Play session with audio and video
-  disabled, requests Rest Mode, and closes the session.
-- **State**: continues to use the original PS5 MQTT discovery/check path. The
-  entity is not optimistic.
+Each discovered console is represented as one MQTT device.
 
-If the PS5 user profile has a login passcode, set `login_passcode` in the
-add-on configuration. This is different from the temporary 8-digit Link
-Device PIN.
+### Power switch
 
-## Optional PSN activity
+- **Turn on:** sends a local Chiaki wake packet using the saved registration
+  credential.
+- **Turn off:** opens a minimal audio/video-disabled local session, requests
+  Rest Mode, and closes the session.
+- **State:** comes from a real console check. After a wake request, the add-on
+  waits up to approximately 30 seconds for an `AWAKE` response. It does not
+  report `AWAKE` merely because the packet was sent.
 
-`psn_accounts` is optional. Configure it only if you want PSN presence and
-game/activity metadata. Local wake, Rest Mode, MQTT discovery, and console
-state do not depend on it.
+The console can briefly show `UNKNOWN` or unavailable while it enters Rest
+Mode and stops responding to network checks.
+
+If the selected PS5 profile has a login passcode, set `login_passcode` in the
+add-on configuration. This is the console profile passcode, not the temporary
+Link Device PIN.
+
+### Diagnostic sensors
+
+- **Last seen:** timestamp of the most recent successful console check
+- **Latency:** duration of the latest successful check in milliseconds
+- **Credential health:**
+  - `paired` — a structurally valid local credential is present
+  - `missing` — no local credential is stored for that console
+  - `invalid` — a credential exists but does not pass validation
+- **Firmware:** system software value reported by console discovery
+
+Credential health validates the stored local data. It does not contact Sony or
+confirm a PSN account.
+
+### Activity sensor
+
+Game and presence metadata may require the optional `psn_accounts`
+configuration. This metadata is independent of local power control.
+
+## Configuration
+
+Common options:
+
+| Option | Purpose |
+| --- | --- |
+| `mqtt` | Optional external broker host, port, username, password, and discovery topic |
+| `device_discovery_broadcast_address` | Static console IP or broadcast address when automatic discovery does not cross the network |
+| `device_check_interval` | Console-state polling interval in milliseconds |
+| `device_discovery_interval` | Discovery interval in milliseconds |
+| `account_check_interval` | Optional PSN account polling interval in milliseconds |
+| `include_ps4_devices` | Include supported PS4 consoles |
+| `login_passcode` | Optional local PS5 profile login passcode |
+| `psn_accounts` | Optional NPSSO accounts for presence/game metadata |
+| `logger` | Debug namespace selection |
+
+For a PS5 with a reserved address, setting
+`device_discovery_broadcast_address` to that address can make discovery more
+predictable. Reserve the address in DHCP so it does not change later.
 
 ## Troubleshooting
 
 ### The PS5 is not discovered
 
-- Confirm Home Assistant can route to the PS5.
-- Keep `host_network: true` (already set by the add-on).
-- If broadcast discovery crosses subnets, configure
-  `device_discovery_broadcast_address`.
+- Confirm Home Assistant can route to the console.
+- Confirm the PS5 address has not changed.
+- Configure `device_discovery_broadcast_address` with the PS5's reserved IP or
+  the correct subnet broadcast address.
+- Keep the add-on's host networking enabled.
+- Confirm another Remote Play client is not interfering with discovery.
 
 ### Pairing fails
 
-- Generate a new PIN and submit it before it expires.
-- Ensure the Account ID belongs to the foreground PS5 user.
+- Generate a new PIN immediately before submitting the form.
+- Confirm the Account ID belongs to the PS5 user currently in the foreground.
+- Use the Base64 Account ID, not the PSN online name or email address.
 - Confirm Remote Play is enabled.
-- Do not use the PSN online name in the Account ID field.
+- Do not reuse a PIN from an earlier pairing attempt.
+- Review the add-on log for the pairing error without sharing stored keys.
 
-### Wake works but Rest Mode fails
+### Wake does not work
 
-- Pair again so the credential file contains both `regist_key` and `rp_key`.
+- Enable both Rest Mode network settings listed in **Prepare the PS5**.
+- Confirm diagnostic **credential health** is `paired`.
+- Confirm the PS5 is in Rest Mode rather than fully powered off.
+- Confirm UDP traffic between Home Assistant and the PS5 is not blocked.
+- Pair again if the stored credential is missing or invalid.
+
+### Rest Mode does not work
+
+- Pair again so the credential contains both the registration and Remote Play
+  keys.
 - Ensure no other Remote Play client is using the console.
-- Set `login_passcode` if the selected console profile requires one.
-- Review the add-on log for the Chiaki quit reason.
+- Configure `login_passcode` if the PS5 profile requires one.
+- Review the add-on log for the Chiaki session quit reason.
 
-### Existing installation still opens Sony OAuth
+### The PS5 wakes and then returns to Rest Mode
 
-That is the original 1.6.x Web UI. Update to this fork's 1.7.1 or later image
-and hard-refresh the add-on Web UI.
+The add-on logs every power command safely as either `AWAKE` or `STANDBY`
+without printing pairing credentials.
+
+1. Check the add-on log for a `STANDBY` command after the `AWAKE` command.
+2. If a second command exists, inspect Home Assistant automations, scripts,
+   dashboards, and MQTT clients that can control the switch.
+3. If no second command exists, inspect the PS5's automatic Rest Mode timer and
+   HDMI Device Link/CEC behavior.
+4. Compare **last seen** and **latency** to determine when the console stopped
+   answering.
+
+Version 1.7.3 and later verifies the wake before publishing `AWAKE`, avoiding
+the misleading optimistic state used by earlier builds.
+
+### The switch becomes unavailable in Rest Mode
+
+During the transition, the PS5 may stop responding before discovery reports a
+stable Rest Mode state. The add-on keeps the local pairing credential and can
+still process a wake request. Check the add-on log and credential-health sensor
+before pairing again.
+
+### The Web UI still shows the original Sony OAuth flow
+
+Confirm the installed add-on is **PS5 MQTT Local Control**, update it to the
+latest version, restart it, and hard-refresh the Web UI. The original upstream
+PS5 MQTT add-on and this fork can both appear in the App store; their
+repositories are different.
+
+## Upgrading
+
+Add-on upgrades preserve `/config/ps5-mqtt`. Existing original
+`PS5-RegistKey` credentials are migrated when possible. If wake or Rest Mode
+fails after migration, use the Web UI to pair again; do not expose the old key
+in an issue report.
+
+After an upgrade:
+
+1. restart the add-on;
+2. wait for MQTT discovery;
+3. verify credential health;
+4. test Rest Mode and wake once; and
+5. check that the console is reported `AWAKE` only after it is reachable.
 
 ## Security
 
-Local pairing does not bypass the console's Remote Play authorization. Anyone
-who obtains the saved registration credentials and can reach the PS5 may be
-able to wake or connect to it. Protect Home Assistant backups and the
-`/config/ps5-mqtt` directory.
+Local pairing does not bypass the PS5's Remote Play authorization. Anyone with
+the stored registration credentials and network access to the console may be
+able to wake or connect to it.
+
+- Protect Home Assistant and its backups.
+- Restrict access to `/config/ps5-mqtt`.
+- Keep MQTT credentials private.
+- Do not post registration keys, Remote Play keys, Account IDs, NPSSO tokens,
+  Link Device PINs, or broker passwords in logs or issue reports.
+- Pair only consoles and users you own or are authorized to administer.
+
+Delete the stored credential or pair again if you believe it has been exposed.
