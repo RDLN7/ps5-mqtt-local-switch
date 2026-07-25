@@ -19,6 +19,11 @@ describe("power on (e2e)", () => {
       stdout: "",
       stderr: "",
     })
+    setFixture(server.fixtureDir, "check", {
+      exitCode: 0,
+      stdout: JSON.stringify({ status: "AWAKE", activity: null }),
+      stderr: "",
+    })
 
     await server.mqtt.publish(`ps5-mqtt/${server.deviceId}/set/power`, "AWAKE")
 
@@ -35,6 +40,10 @@ describe("power on (e2e)", () => {
       (invocation) => invocation.subcommand === "wake",
     )
     expect(wakeCalls).toHaveLength(1)
+    const checkCalls = readInvocations(server.fixtureDir).filter(
+      (invocation) => invocation.subcommand === "check",
+    )
+    expect(checkCalls.length).toBeGreaterThanOrEqual(1)
     const args = wakeCalls[0].argv.join(" ")
     expect(args).toContain("--ip 127.0.0.1")
     expect(args).toContain("-c")

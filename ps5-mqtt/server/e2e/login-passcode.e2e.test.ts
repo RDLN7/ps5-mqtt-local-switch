@@ -21,6 +21,11 @@ describe("login passcode forwarding (e2e)", () => {
       stdout: "",
       stderr: "",
     })
+    setFixture(server.fixtureDir, "check", {
+      exitCode: 0,
+      stdout: JSON.stringify({ status: "AWAKE", activity: null }),
+      stderr: "",
+    })
 
     await server.mqtt.publish(`ps5-mqtt/${server.deviceId}/set/power`, "AWAKE")
 
