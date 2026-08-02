@@ -67,7 +67,7 @@ export function createPlayactorClient({
 
     async wake(ip: string): Promise<void> {
       if (localRemotePlayClient?.hasCredential(ip)) {
-        await localRemotePlayClient.wake(ip)
+        await localRemotePlayClient.wake(ip, loginPasscode)
         return
       }
       await runPowerCommand(buildWakeCommand(ip))

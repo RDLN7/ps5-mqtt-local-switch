@@ -8,13 +8,13 @@ Commands:
 
 ```text
 ps5-mqtt-local-rp register <host> <base64-account-id> <8-digit-pin>
-ps5-mqtt-local-rp wake <host> <registration-key>
+ps5-mqtt-local-rp wake <host> <registration-key> [rp-key-hex] [login-passcode]
 ps5-mqtt-local-rp standby <host> <registration-key> <rp-key-hex> [login-passcode]
 ```
 
 Registration returns JSON containing `regist_key`, `rp_key`, `rp_key_type`, and
 the server MAC. The Node service validates and stores that output without
-logging it. Wake uses Chiaki discovery. Standby connects with audio/video
+logging it. Wake uses Chiaki discovery and, when `rp_key` is provided, opens a minimal session to authenticate and log into the console Home Screen before closing the session. Standby connects with audio/video
 disabled, waits for `CHIAKI_EVENT_CONNECTED`, calls
 `chiaki_session_goto_bed()`, and closes the session.
 

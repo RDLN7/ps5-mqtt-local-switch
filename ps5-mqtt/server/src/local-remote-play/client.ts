@@ -23,7 +23,7 @@ export interface LocalRemotePlayClient {
   register(host: string, accountId: string, pin: string): Promise<void>
   hasCredential(host: string): boolean
   credentialHealth(host: string): LocalCredentialHealth
-  wake(host: string): Promise<void>
+  wake(host: string, loginPasscode?: string): Promise<void>
   standby(host: string, loginPasscode?: string): Promise<void>
 }
 
@@ -133,9 +133,11 @@ export function createLocalRemotePlayClient({
       }
     },
 
-    async wake(host: string): Promise<void> {
+    async wake(host: string, loginPasscode?: string): Promise<void> {
       const credential = credentialFor(host)
-      await run(["wake", host, credential.regist_key], 10_000)
+      const args = ["wake", host, credential.regist_key, credential.rp_key]
+      if (loginPasscode) args.push(loginPasscode)
+      await run(args, 45_000)
     },
 
     async standby(host: string, loginPasscode?: string): Promise<void> {

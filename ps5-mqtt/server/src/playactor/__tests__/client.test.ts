@@ -71,6 +71,25 @@ describe("PlayactorClient", () => {
 
       await expect(client.wake(IP)).rejects.toBe("boom")
     })
+
+    test("delegates to localRemotePlayClient.wake with passcode when credentials exist", async () => {
+      const mockLocalClient = {
+        register: jest.fn(),
+        hasCredential: jest.fn().mockReturnValue(true),
+        credentialHealth: jest.fn().mockReturnValue("paired"),
+        wake: jest.fn().mockResolvedValue(undefined),
+        standby: jest.fn(),
+      }
+      const clientWithLocal = createPlayactorClient({
+        credentialStoragePath: CREDENTIAL_PATH,
+        loginPasscode: "1234",
+        localRemotePlayClient: mockLocalClient,
+      })
+
+      await clientWithLocal.wake(IP)
+
+      expect(mockLocalClient.wake).toHaveBeenCalledWith(IP, "1234")
+    })
   })
 
   describe("standby", () => {

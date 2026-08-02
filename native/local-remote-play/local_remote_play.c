@@ -190,7 +190,35 @@ static int register_console(const char *host, const char *account_id, const char
 	return 0;
 }
 
-static int wake_console(const char *host, const char *regist_key_value)
+static void session_callback(ChiakiEvent *event, void *user)
+{
+	SessionResult *result = user;
+	if(event->type == CHIAKI_EVENT_LOGIN_PIN_REQUEST && result->login_pin)
+	{
+		chiaki_session_set_login_pin(
+			result->session,
+			(const uint8_t *)result->login_pin,
+			strlen(result->login_pin));
+		return;
+	}
+
+	pthread_mutex_lock(&result->mutex);
+	if(event->type == CHIAKI_EVENT_CONNECTED)
+		result->connected = 1;
+	else if(event->type == CHIAKI_EVENT_QUIT)
+	{
+		result->quit = 1;
+		result->quit_reason = event->quit.reason;
+	}
+	pthread_cond_signal(&result->condition);
+	pthread_mutex_unlock(&result->mutex);
+}
+
+static int wake_console(
+	const char *host,
+	const char *regist_key_value,
+	const char *rp_key_value,
+	const char *login_pin)
 {
 	char regist_key[CHIAKI_SESSION_AUTH_SIZE];
 	if(!parse_regist_key(regist_key_value, regist_key))
@@ -216,32 +244,89 @@ static int wake_console(const char *host, const char *regist_key_value)
 		fprintf(stderr, "Wake failed: %s\n", chiaki_error_string(error));
 		return 1;
 	}
-	printf("{\"ok\":true}\n");
-	return 0;
-}
 
-static void session_callback(ChiakiEvent *event, void *user)
-{
-	SessionResult *result = user;
-	if(event->type == CHIAKI_EVENT_LOGIN_PIN_REQUEST && result->login_pin)
+	if(!rp_key_value || strlen(rp_key_value) == 0)
 	{
-		chiaki_session_set_login_pin(
-			result->session,
-			(const uint8_t *)result->login_pin,
-			strlen(result->login_pin));
-		return;
+		printf("{\"ok\":true}\n");
+		return 0;
 	}
 
-	pthread_mutex_lock(&result->mutex);
-	if(event->type == CHIAKI_EVENT_CONNECTED)
-		result->connected = 1;
-	else if(event->type == CHIAKI_EVENT_QUIT)
+	ChiakiConnectInfo info = { 0 };
+	info.ps5 = true;
+	info.host = host;
+	info.audio_video_disabled = CHIAKI_AUDIO_VIDEO_DISABLED;
+	info.enable_keyboard = false;
+	info.enable_dualsense = false;
+	info.packet_loss_max = 0.1;
+	chiaki_connect_video_profile_preset(
+		&info.video_profile,
+		CHIAKI_VIDEO_RESOLUTION_PRESET_360p,
+		CHIAKI_VIDEO_FPS_PRESET_30);
+
+	if(!parse_regist_key(regist_key_value, info.regist_key) ||
+		!decode_hex(rp_key_value, info.morning, sizeof(info.morning)))
 	{
-		result->quit = 1;
-		result->quit_reason = event->quit.reason;
+		fprintf(stderr, "Invalid local Remote Play credentials.\n");
+		return 2;
 	}
-	pthread_cond_signal(&result->condition);
-	pthread_mutex_unlock(&result->mutex);
+
+	ChiakiSession session;
+	error = chiaki_session_init(&session, &info, &log);
+	if(error != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "Could not initialize session: %s\n", chiaki_error_string(error));
+		return 1;
+	}
+
+	SessionResult result = { 0 };
+	result.session = &session;
+	result.login_pin = login_pin && *login_pin ? login_pin : NULL;
+	pthread_mutex_init(&result.mutex, NULL);
+	pthread_cond_init(&result.condition, NULL);
+	chiaki_session_set_event_cb(&session, session_callback, &result);
+
+	error = chiaki_session_start(&session);
+	if(error != CHIAKI_ERR_SUCCESS)
+	{
+		fprintf(stderr, "Could not start session: %s\n", chiaki_error_string(error));
+		chiaki_session_fini(&session);
+		return 1;
+	}
+
+	struct timespec deadline;
+	clock_gettime(CLOCK_REALTIME, &deadline);
+	deadline.tv_sec += CONNECT_TIMEOUT_SECONDS;
+	pthread_mutex_lock(&result.mutex);
+	while(!result.connected && !result.quit)
+	{
+		if(pthread_cond_timedwait(&result.condition, &result.mutex, &deadline) == ETIMEDOUT)
+			break;
+	}
+	int connected = result.connected;
+	ChiakiQuitReason quit_reason = result.quit_reason;
+	int quit = result.quit;
+	pthread_mutex_unlock(&result.mutex);
+
+	int return_code = 0;
+	if(!connected)
+	{
+		fprintf(stderr, "Remote Play connection failed or timed out (%s).\n",
+			quit ? chiaki_quit_reason_string(quit_reason) : "timeout");
+		return_code = 1;
+	}
+	else
+	{
+		struct timespec delay = { .tv_sec = 1, .tv_nsec = 0 };
+		nanosleep(&delay, NULL);
+		printf("{\"ok\":true}\n");
+	}
+
+	chiaki_session_stop(&session);
+	chiaki_session_join(&session);
+	chiaki_session_fini(&session);
+	pthread_cond_destroy(&result.condition);
+	pthread_mutex_destroy(&result.mutex);
+	return return_code;
 }
 
 static int standby_console(
@@ -344,7 +429,7 @@ static void usage(const char *program)
 	fprintf(stderr,
 		"Usage:\n"
 		"  %s register <ps5-ip> <base64-account-id> <8-digit-pin>\n"
-		"  %s wake <ps5-ip> <registration-key>\n"
+		"  %s wake <ps5-ip> <registration-key> [rp-key-hex] [login-passcode]\n"
 		"  %s standby <ps5-ip> <registration-key> <rp-key-hex> [login-passcode]\n",
 		program, program, program);
 }
@@ -353,8 +438,8 @@ int main(int argc, char **argv)
 {
 	if(argc == 5 && strcmp(argv[1], "register") == 0)
 		return register_console(argv[2], argv[3], argv[4]);
-	if(argc == 4 && strcmp(argv[1], "wake") == 0)
-		return wake_console(argv[2], argv[3]);
+	if((argc >= 4 && argc <= 6) && strcmp(argv[1], "wake") == 0)
+		return wake_console(argv[2], argv[3], argc >= 5 ? argv[4] : NULL, argc == 6 ? argv[5] : NULL);
 	if((argc == 5 || argc == 6) && strcmp(argv[1], "standby") == 0)
 		return standby_console(argv[2], argv[3], argv[4], argc == 6 ? argv[5] : NULL);
 	usage(argv[0]);
