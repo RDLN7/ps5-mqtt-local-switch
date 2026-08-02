@@ -1,4 +1,4 @@
-version: 1.7.3
+version: 1.7.4
 slug: ps5_mqtt
 name: PS5 MQTT Local Control
 description: Control PlayStation 5 devices over MQTT with PSN-free local pairing
