@@ -1,3 +1,9 @@
+## 1.7.4 - 2026-08-02
+
+### Added
+
+- Full Remote Play session login on wake. Waking the console via the add-on authenticates your profile, passes the login passcode (if configured), and unlocks the console directly into the PS5 Home Screen.
+
 ## 1.7.3 - 2026-07-25
 
 ## What’s changed
